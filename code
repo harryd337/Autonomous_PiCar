@@ -1,0 +1,6 @@
+import os
+from os import listdir
+folder_dir = r"C:\Users\Kshitij Tiwari\Downloads\machine-learning-in-science-ii-2023\training_data\training_data"
+for images in os.listdir(folder_dir):
+    if(images.endswith(".png") or images.endswith(".jpg") or images.endswith(".jpeg")):
+        print(images)
