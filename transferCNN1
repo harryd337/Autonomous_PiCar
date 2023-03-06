@@ -17,3 +17,18 @@ model = tf.keras.Sequential([
 ])
 
 model.summary()
+
+#training the model
+
+model.compile(
+    optimizer = 'adam', 
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    metrics=['accuracy']
+)
+
+EPOCHS = 6
+
+history = model.fit(train_batches,
+                   epochs=EPOCHS,
+                   validation_data=validation_batches) #change names of train_batches and validation_batches depending on oyur names
+
