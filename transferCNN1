@@ -1,0 +1,19 @@
+mobilenet_v2 ="https://tfhub.dev/google/tf2-preview/mobilenet_v2/classification/4"
+inception_v3 = "https://tfhub.dev/google/imagenet/inception_v3/classification/5"
+
+classifier_model = inception_v3
+
+IMAGE_SHAPE_M = (224,224)  #Image size for MobilNet
+IMAGE_SHAPE_I = (299,299)  #Image size for Inception
+
+classifier = tf.keras.Sequential([
+    hub.KerasLayer(classifier_model, input_shape=IMAGE_SHAPE_I+(3,))
+])
+classifier.trainable = False
+
+model = tf.keras.Sequential([
+    classifier, 
+    layers.Dense(1)
+])
+
+model.summary()
