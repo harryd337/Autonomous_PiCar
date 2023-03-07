@@ -26,7 +26,7 @@ img_width = 224
 seed = random.randint(1, 1000)
 
 train_set = tf.keras.utils.image_dataset_from_directory(
-    path_to_data/'training_data',
+    path_to_data/'training_data/classification',
     labels='inferred',
     label_mode='binary',
     color_mode='rgb',
@@ -40,7 +40,7 @@ train_set = tf.keras.utils.image_dataset_from_directory(
     )
 
 val_set = tf.keras.utils.image_dataset_from_directory(
-    path_to_data/'training_data',
+    path_to_data/'training_data/classification',
     labels='inferred',
     label_mode='binary',
     color_mode='rgb',
