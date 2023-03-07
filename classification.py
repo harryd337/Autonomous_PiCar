@@ -5,8 +5,9 @@ from pathlib import Path
 import pandas as pd
 import random
 import tensorflow_hub as hub
-from tensorflow.keras import layers
+from keras import layers
 import keras.backend as K
+from keras.optimizers import Adam
 
 physical_devices = tf.config.list_physical_devices('GPU')
 print("GPUs Available: ", len(physical_devices))
@@ -15,17 +16,15 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
 
-batch_size = 10
+batch_size = 20
 img_height = 224
 img_width = 224
 seed = random.randint(1, 1000)
-#seed = 1
 
 train_set = tf.keras.utils.image_dataset_from_directory(
     path_to_data/'training_data',
     labels='inferred',
     label_mode='binary',
-    #class_names = [0, 1],
     color_mode='rgb',
     batch_size=batch_size,
     image_size=(img_height, img_width),
@@ -40,7 +39,6 @@ val_set = tf.keras.utils.image_dataset_from_directory(
     path_to_data/'training_data',
     labels='inferred',
     label_mode='binary',
-    #class_names = [0, 1],
     color_mode='rgb',
     batch_size=batch_size,
     image_size=(img_height, img_width),
@@ -71,11 +69,13 @@ classifier = tf.keras.Sequential([
 classifier.trainable = False
 
 model = tf.keras.Sequential([
-    #normalization_layer,
     classifier, 
-    layers.Dense(1)
+    layers.Dense(1,
+                 activation='relu'
+                 #kernel_regularizer=tf.keras.regularizers.l2(0.1)
+                 )
 ])
-#model.build(input_shape=(None, ) + IMAGE_SHAPE_M)
+
 model.summary()
 
 def f1_score(y_true, y_pred):
@@ -108,12 +108,12 @@ def f1_score(y_true, y_pred):
 #training the model
 
 model.compile(
-    optimizer = 'adam', 
+    optimizer = Adam(),
     loss = tf.keras.losses.BinaryCrossentropy(from_logits=True),
     metrics=['accuracy', f1_score]
 )
 
-EPOCHS = 1
+EPOCHS = 2
 
 history = model.fit(train_set,
                    epochs=EPOCHS,
