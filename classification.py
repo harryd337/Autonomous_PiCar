@@ -6,19 +6,22 @@ import pandas as pd
 import random
 import tensorflow_hub as hub
 from tensorflow.keras import layers
+import keras.backend as K
 
-physical_devices = tf.config.list_physical_devices("GPU")
-#tf.config.experimental.set_memory_growth(physical_devices[0], True)
+physical_devices = tf.config.list_physical_devices('GPU')
+print("GPUs Available: ", len(physical_devices))
+tf.config.set_visible_devices(physical_devices[0], 'GPU')
+tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
 
-batch_size = 1
+batch_size = 10
 img_height = 224
 img_width = 224
 seed = random.randint(1, 1000)
-seed = 1
+#seed = 1
 
-train_ds = tf.keras.utils.image_dataset_from_directory(
+train_set = tf.keras.utils.image_dataset_from_directory(
     path_to_data/'training_data',
     labels='inferred',
     label_mode='binary',
@@ -33,7 +36,7 @@ train_ds = tf.keras.utils.image_dataset_from_directory(
     crop_to_aspect_ratio = False
     )
 
-val_ds = tf.keras.utils.image_dataset_from_directory(
+val_set = tf.keras.utils.image_dataset_from_directory(
     path_to_data/'training_data',
     labels='inferred',
     label_mode='binary',
@@ -49,10 +52,10 @@ val_ds = tf.keras.utils.image_dataset_from_directory(
     )
 
 AUTOTUNE = tf.data.AUTOTUNE
-train_ds = train_ds.cache().prefetch(buffer_size=AUTOTUNE)
-val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+train_set = train_set.cache().prefetch(buffer_size=AUTOTUNE)
+val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
     
-normalization_layer = tf.keras.layers.Rescaling(1./255)
+#normalization_layer = tf.keras.layers.Rescaling(1./255)
 
 mobilenet_v2 ="https://tfhub.dev/google/tf2-preview/mobilenet_v2/classification/4"
 inception_v3 = "https://tfhub.dev/google/imagenet/inception_v3/classification/5"
@@ -72,19 +75,46 @@ model = tf.keras.Sequential([
     classifier, 
     layers.Dense(1)
 ])
-model.build(input_shape=(None, ) + IMAGE_SHAPE_M)
+#model.build(input_shape=(None, ) + IMAGE_SHAPE_M)
 model.summary()
+
+def f1_score(y_true, y_pred):
+    """
+    Function to calculate the F1 score.
+    """
+    def recall(y_true, y_pred):
+        """
+        Recall metric.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+        recall = true_positives / (possible_positives + K.epsilon())
+        return recall
+
+    def precision(y_true, y_pred):
+        """
+        Precision metric.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+        precision = true_positives / (predicted_positives + K.epsilon())
+        return precision
+
+    precision = precision(y_true, y_pred)
+    recall = recall(y_true, y_pred)
+    f1_score = 2 * ((precision * recall) / (precision + recall + K.epsilon()))
+    return f1_score
 
 #training the model
 
 model.compile(
     optimizer = 'adam', 
     loss = tf.keras.losses.BinaryCrossentropy(from_logits=True),
-    metrics=['accuracy']
+    metrics=['accuracy', f1_score]
 )
 
 EPOCHS = 1
 
-history = model.fit(train_ds,
+history = model.fit(train_set,
                    epochs=EPOCHS,
-                   validation_data=val_ds) #change names of train_batches and validation_batches depending on oyur names
+                   validation_data=val_set)
