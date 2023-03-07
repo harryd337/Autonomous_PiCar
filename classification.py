@@ -14,7 +14,11 @@ print("GPUs Available: ", len(physical_devices))
 tf.config.set_visible_devices(physical_devices[0], 'GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
+# If running locally:
 path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
+
+# If running on colab:
+#path_to_data = Path("/content/drive/My Drive/machine-learning-in-science-ii-2023")
 
 batch_size = 20
 img_height = 224
