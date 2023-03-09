@@ -133,8 +133,6 @@ def f1_score(y_true, y_pred):
 #if using early stopping
 callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
 
-#otherwise us this
-
 model.compile(
     optimizer = Adam(),
     loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
