@@ -17,9 +17,9 @@ tf.config.experimental.set_memory_growth(physical_devices[0], True)
 !nvidia-smi
 
 from google.colab import drive
-drive.mount("/Shareddrives/")
+drive.mount("/Shareddrives/", force_remount=True)
 
-path_to_data = Path("/Shareddrives/MyDrive/machine-learning-in-science-ii-2023")
+path_to_data = Path("/Shareddrives/MyDrive/machine-learning-in-science-ii-2023/training_data/classification")
 
 batch_size = 20
 img_height = 224
@@ -27,7 +27,7 @@ img_width = 224
 seed = random.randint(1, 1000)
 
 train_set = tf.keras.utils.image_dataset_from_directory(
-    path_to_data/'training_data',
+    path_to_data,
     labels='inferred',
     label_mode='binary',
     color_mode='rgb',
@@ -39,9 +39,9 @@ train_set = tf.keras.utils.image_dataset_from_directory(
     subset='training',
     crop_to_aspect_ratio = False
     )
-    
+
 val_set = tf.keras.utils.image_dataset_from_directory(
-    path_to_data/'training_data',
+    path_to_data,
     labels='inferred',
     label_mode='binary',
     color_mode='rgb',
@@ -53,8 +53,8 @@ val_set = tf.keras.utils.image_dataset_from_directory(
     subset='validation',
     crop_to_aspect_ratio = False
     )
- 
- AUTOTUNE = tf.data.AUTOTUNE
+
+AUTOTUNE = tf.data.AUTOTUNE
 train_set = train_set.cache().prefetch(buffer_size=AUTOTUNE)
 val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
     
@@ -68,20 +68,6 @@ val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
 #IMAGE_SHAPE_M = (224,224)  #Image size for MobilNet
 #IMAGE_SHAPE_I = (299,299)  #Image size for Inception
 #IMAGE_SHAPE_V = (224, 224) #Image size for VGG
-
-#classifier = tf.keras.Sequential([
-    #hub.KerasLayer(classifier_model, input_shape=IMAGE_SHAPE_M+(3,))
-#])
-#classifier.trainable = False
-
-#model = tf.keras.Sequential([
-    #classifier, 
-    #layers.Dense(1,
-                 #activation='relu'
-                 #kernel_regularizer=tf.keras.regularizers.l2(0.1)
-                 #)
-#])
-#model.summary()
 
 from pickle import FALSE
 from tensorflow.keras.applications.vgg16 import VGG16
@@ -117,12 +103,47 @@ model.compile(
     metrics=['accuracy'],
 )
 
+def f1_score(y_true, y_pred):
+    """
+    Function to calculate the F1 score.
+    """
+    def recall(y_true, y_pred):
+        """
+        Recall metric.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        possible_positives = K.sum(K.round(K.clip(y_true, 0, 1)))
+        recall = true_positives / (possible_positives + K.epsilon())
+        return recall
+
+    def precision(y_true, y_pred):
+        """
+        Precision metric.
+        """
+        true_positives = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+        predicted_positives = K.sum(K.round(K.clip(y_pred, 0, 1)))
+        precision = true_positives / (predicted_positives + K.epsilon())
+        return precision
+
+    precision = precision(y_true, y_pred)
+    recall = recall(y_true, y_pred)
+    f1_score = 2 * ((precision * recall) / (precision + recall + K.epsilon()))
+    return f1_score
+
 #if using early stopping
-#E_S = EarlyStopping(monitor='val_accuracy', model'max',patience=5, restore_best_weights=True)
-#model.fit(training_data, train_labels, epochs=100, validation=0.2, batch_size=32, callbacks=[es])
+callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=3)
 
 #otherwise us this
-EPOCHS = 3
+
+model.compile(
+    optimizer = Adam(),
+    loss = tf.keras.losses.BinaryCrossentropy(from_logits=False),
+    metrics=['accuracy', f1_score]
+)
+
+EPOCHS = 10
+
 history = model.fit(train_set,
                    epochs=EPOCHS,
-                   validation_data=val_set)  #replace validation batches
+                   callbacks=[callback],
+                   validation_data=val_set)
