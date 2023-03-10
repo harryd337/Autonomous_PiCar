@@ -35,7 +35,7 @@ elif inception_v3:
     classifier_model = inception_v3
 
 if on_colab:
-    path_to_data = Path("/content/drive/MyDrive/machine-learning-in-science-ii-2023")
+    path_to_data = Path("/content/drive/My Drive/machine-learning-in-science-ii-2023")
     image_paths_csv = pd.read_csv(str(path_to_data/'training_norm_paths_googledrive.csv'))
 else:
     path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
