@@ -4,15 +4,17 @@ import tensorflow as tf
 from pathlib import Path
 import pandas as pd
 import random
+import datetime
 import tensorflow_hub as hub
-from keras import layers
-import keras.backend as K
-from keras.optimizers import Adam
+K = tf.keras.backend
 
+K.clear_session()
 physical_devices = tf.config.list_physical_devices('GPU')
-print("GPUs Available: ", len(physical_devices))
-tf.config.set_visible_devices(physical_devices[0], 'GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
+num_physical_devices = len(physical_devices)
+print("GPUs Available: ", num_physical_devices)
+if num_physical_devices > 0:
+    tf.config.set_visible_devices(physical_devices[0], 'GPU')
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # If running locally:
 path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
@@ -26,7 +28,7 @@ img_width = 224
 seed = random.randint(1, 1000)
 
 train_set = tf.keras.utils.image_dataset_from_directory(
-    path_to_data/'training_data/classification',
+    path_to_data/'training_data/training_data/classification',
     labels='inferred',
     label_mode='binary',
     color_mode='rgb',
@@ -40,7 +42,7 @@ train_set = tf.keras.utils.image_dataset_from_directory(
     )
 
 val_set = tf.keras.utils.image_dataset_from_directory(
-    path_to_data/'training_data/classification',
+    path_to_data/'training_data/training_data/classification',
     labels='inferred',
     label_mode='binary',
     color_mode='rgb',
@@ -74,7 +76,7 @@ classifier.trainable = False
 
 model = tf.keras.Sequential([
     classifier, 
-    layers.Dense(1,
+    tf.keras.layers.Dense(1,
                  activation='relu'
                  #kernel_regularizer=tf.keras.regularizers.l2(0.1)
                  )
@@ -112,13 +114,19 @@ def f1_score(y_true, y_pred):
 #training the model
 
 model.compile(
-    optimizer = Adam(),
+    optimizer = tf.keras.optimizers.Adam(),
     loss = tf.keras.losses.BinaryCrossentropy(from_logits=True),
     metrics=['accuracy', f1_score]
 )
 
 EPOCHS = 2
 
+log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir,
+                                                      histogram_freq=1,
+                                                      profile_batch=(30,100))
+
 history = model.fit(train_set,
                    epochs=EPOCHS,
-                   validation_data=val_set)
+                   validation_data=val_set,
+                   callbacks=[tensorboard_callback])
