@@ -1,3 +1,8 @@
+import sys
+on_colab =  'google.colab' in sys.modules
+if on_colab:
+    from google.colab import drive
+    drive.mount('/content/drive')
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import tensorflow as tf
@@ -16,16 +21,25 @@ if num_physical_devices > 0:
     tf.config.set_visible_devices(physical_devices[0], 'GPU')
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-# If running locally:
-path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
-
-# If running on colab:
-#path_to_data = Path("/content/drive/My Drive/machine-learning-in-science-ii-2023")
-
 batch_size = 20
-img_height = 224
-img_width = 224
+epochs = 2
+mobilenet_v2 = True
+inception_v3 = False
 seed = random.randint(1, 1000)
+
+if mobilenet_v2:
+    mobilenet_v2 ="https://tfhub.dev/google/tf2-preview/mobilenet_v2/classification/4"
+    classifier_model = mobilenet_v2
+    image_shape = (224, 224)
+elif inception_v3:
+    inception_v3 = "https://tfhub.dev/google/imagenet/inception_v3/classification/5"
+    image_shape = (299,299)
+    classifier_model = inception_v3
+
+if on_colab:
+    path_to_data = Path("/content/drive/My Drive/machine-learning-in-science-ii-2023")
+else:
+    path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
 
 train_set = tf.keras.utils.image_dataset_from_directory(
     path_to_data/'training_data/training_data/classification',
@@ -33,7 +47,7 @@ train_set = tf.keras.utils.image_dataset_from_directory(
     label_mode='binary',
     color_mode='rgb',
     batch_size=batch_size,
-    image_size=(img_height, img_width),
+    image_size=image_shape,
     shuffle=True,
     seed=seed,
     validation_split=0.2,
@@ -47,7 +61,7 @@ val_set = tf.keras.utils.image_dataset_from_directory(
     label_mode='binary',
     color_mode='rgb',
     batch_size=batch_size,
-    image_size=(img_height, img_width),
+    image_size=image_shape,
     shuffle=True,
     seed=seed,
     validation_split=0.2,
@@ -58,26 +72,16 @@ val_set = tf.keras.utils.image_dataset_from_directory(
 AUTOTUNE = tf.data.AUTOTUNE
 train_set = train_set.cache().prefetch(buffer_size=AUTOTUNE)
 val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
-    
-#normalization_layer = tf.keras.layers.Rescaling(1./255)
-
-mobilenet_v2 ="https://tfhub.dev/google/tf2-preview/mobilenet_v2/classification/4"
-inception_v3 = "https://tfhub.dev/google/imagenet/inception_v3/classification/5"
-
-classifier_model = mobilenet_v2
-
-IMAGE_SHAPE_M = (224,224)  #Image size for MobilNet
-IMAGE_SHAPE_I = (299,299)  #Image size for Inception
 
 classifier = tf.keras.Sequential([
-    hub.KerasLayer(classifier_model, input_shape=IMAGE_SHAPE_M+(3,))
+    hub.KerasLayer(classifier_model, input_shape=image_shape+(3,))
 ])
 classifier.trainable = False
 
 model = tf.keras.Sequential([
     classifier, 
     tf.keras.layers.Dense(1,
-                 activation='relu'
+                 activation='relu' #try with relu/None
                  #kernel_regularizer=tf.keras.regularizers.l2(0.1)
                  )
 ])
@@ -119,14 +123,12 @@ model.compile(
     metrics=['accuracy', f1_score]
 )
 
-EPOCHS = 2
-
 log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir,
                                                       histogram_freq=1,
-                                                      profile_batch=(30,100))
+                                                      profile_batch=(30,50))
 
 history = model.fit(train_set,
-                   epochs=EPOCHS,
+                   epochs=epochs,
                    validation_data=val_set,
                    callbacks=[tensorboard_callback])
