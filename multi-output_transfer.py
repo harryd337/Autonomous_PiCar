@@ -9,6 +9,7 @@ import tensorflow as tf
 from pathlib import Path
 import pandas as pd
 import random
+import datetime
 import tensorflow_hub as hub
 K = tf.keras.backend
 
@@ -20,10 +21,14 @@ if num_physical_devices > 0:
     tf.config.set_visible_devices(physical_devices[0], 'GPU')
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-batch_size = 20
+# --- HYPERPARAMETERS ---
+batch_size = 10
 epochs = 6
+train_val_split = 0.8
 mobilenet_v2 = True
 inception_v3 = False
+logging = True # log using tensorboard
+# -----------------------
 
 if mobilenet_v2:
     mobilenet_v2 ="https://tfhub.dev/google/tf2-preview/mobilenet_v2/classification/4"
@@ -40,22 +45,25 @@ if on_colab:
 else:
     path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
     image_paths_csv = pd.read_csv(str(path_to_data/'training_norm_paths.csv'))
+    
+if logging:
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tf.profiler.experimental.start(log_dir)
 
-# Create a dataset from the dataframe
 dataset = tf.data.Dataset.from_tensor_slices((image_paths_csv['image_path'],
                                               image_paths_csv['speed'],
                                               image_paths_csv['angle']))
 
 # Define a function that maps each row to an image and a pair of labels
 def load_image_and_labels(image_path, speed_label, angle_label):
-  image = tf.io.read_file(image_path)
-  image = tf.image.decode_png(image, channels=3)
-  image = tf.image.resize(image, image_shape)
-  # Convert the class label to an integer
-  speed_label = tf.cast(speed_label, tf.int32)
-  # Convert the regression label to a float
-  angle_label = tf.cast(angle_label, tf.float32)
-  return image, (speed_label, angle_label)
+    image = tf.io.read_file(image_path)
+    image = tf.image.decode_png(image, channels=3)
+    image = tf.image.resize(image, image_shape)
+    # Convert the class label to an integer
+    speed_label = tf.cast(speed_label, tf.int32)
+    # Convert the regression label to a float
+    angle_label = tf.cast(angle_label, tf.float32)
+    return image, (speed_label, angle_label)
 
 dataset = dataset.map(load_image_and_labels).batch(batch_size) # Apply the function to each batch of data
 num_batches = dataset.cardinality().numpy() # Calculate the number of batches in the dataset
@@ -63,7 +71,7 @@ num_batches = dataset.cardinality().numpy() # Calculate the number of batches in
 dataset = dataset.shuffle(buffer_size=num_batches*batch_size)
 
 # Calculate the number of batches for training and validation
-train_batches = int(num_batches * 0.8)
+train_batches = int(num_batches * train_val_split)
 val_batches = num_batches - train_batches
 
 # Split the dataset into training and validation sets using take and skip methods
@@ -120,7 +128,7 @@ def f1_score(y_true, y_pred):
     f1_score = 2 * ((precision * recall) / (precision + recall + K.epsilon()))
     return f1_score
 
-#training the model
+#train the model
 
 model.compile(
     optimizer = tf.keras.mixed_precision.LossScaleOptimizer(tf.keras.optimizers.Adam()),
@@ -141,3 +149,7 @@ model.compile(
 history = model.fit(train_set,
                    epochs=epochs,
                    validation_data=val_set)
+
+if logging:
+    tf.profiler.experimental.stop()
+    # to view log execute: "tensorboard --logdir=logs/fit/"
