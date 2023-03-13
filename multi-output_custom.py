@@ -1,3 +1,4 @@
+#%%
 import sys
 on_colab =  'google.colab' in sys.modules
 if on_colab:
@@ -8,6 +9,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import tensorflow as tf
 from pathlib import Path
 import pandas as pd
+import numpy as np
 import random
 import datetime
 import tensorflow_hub as hub
@@ -22,11 +24,9 @@ if num_physical_devices > 0:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # --- HYPERPARAMETERS ---
-batch_size = 10
-epochs = 6
+batch_size = 20
+epochs = 30
 train_val_split = 0.8
-mobilenet_v2 = True
-inception_v3 = False
 logging = False # log using tensorboard
 image_shape = (32, 32)
 # -----------------------
@@ -47,7 +47,7 @@ dataset = tf.data.Dataset.from_tensor_slices((image_paths_csv['image_path'],
                                               image_paths_csv['angle']))
 
 # Define a function that maps each row to an image and a pair of labels
-def load_image_and_labels(image_path, speed_label, angle_label):
+def load_training_images_and_labels(image_path, speed_label, angle_label):
     image = tf.io.read_file(image_path)
     image = tf.image.decode_png(image, channels=3)
     image = tf.image.resize(image, image_shape)
@@ -57,7 +57,7 @@ def load_image_and_labels(image_path, speed_label, angle_label):
     angle_label = tf.cast(angle_label, tf.float32)
     return image, (speed_label, angle_label)
 
-dataset = dataset.map(load_image_and_labels).batch(batch_size) # Apply the function to each batch of data
+dataset = dataset.map(load_training_images_and_labels).batch(batch_size) # Apply the function to each batch of data
 num_batches = dataset.cardinality().numpy() # Calculate the number of batches in the dataset
 # Shuffle the data using a buffer size equal to or larger than the number of elements in the dataset
 dataset = dataset.shuffle(buffer_size=num_batches*batch_size)
@@ -154,3 +154,26 @@ history = model.fit(train_set,
 if logging:
     tf.profiler.experimental.stop()
     # to view log execute: "tensorboard --logdir=logs/fit/"
+#%%
+test_ds = tf.keras.utils.image_dataset_from_directory(
+    path_to_data/'test_data/test_data',
+    labels=None,
+    batch_size=batch_size,
+    image_size=image_shape)
+
+# Make predictions on the test data
+predictions = model.predict(test_ds)
+
+speed_predictions = predictions[0]
+angle_predictions = predictions[1]
+
+predictions_df = pd.DataFrame()
+predictions_df['image_id'] = np.arange(1, 1021)
+predictions_df['angle'] = angle_predictions
+predictions_df['speed'] = speed_predictions
+
+boundary = lambda x: 1 if x > 0.5 else 0
+predictions_df['speed'] = predictions_df['speed'].apply(boundary)
+
+predictions_df.to_csv('submission.csv', index=False)
+#%%
