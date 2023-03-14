@@ -9,12 +9,14 @@ from keras import layers
 import keras.backend as K
 from keras.optimizers import Adam
 
+"""
 physical_devices = tf.config.list_physical_devices('GPU')
 print("GPUs Available: ", len(physical_devices))
 tf.config.set_visible_devices(physical_devices[0], 'GPU')
 tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 !nvidia-smi
+"""
 
 from google.colab import drive
 drive.mount("/Shareddrives/", force_remount=True)
