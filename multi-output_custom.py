@@ -74,7 +74,7 @@ AUTOTUNE = tf.data.AUTOTUNE
 train_set = train_set.cache().prefetch(buffer_size=AUTOTUNE)
 val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
 
-CNN1 = tf.keras.Sequential(
+CNN_speed = tf.keras.Sequential(
     [
         Input(shape=image_shape+(3,)),
         layers.Conv2D(32, 3, padding="valid", activation="relu"),
@@ -86,10 +86,10 @@ CNN1 = tf.keras.Sequential(
         layers.Dense(64, activation="relu"),
         layers.Dense(10),
     ],
-    name='CNN1'
+    name='CNN_speed'
 )
 
-CNN2 = tf.keras.Sequential(
+CNN_angle = tf.keras.Sequential(
     [
         Input(shape=image_shape+(3,)),
         layers.Conv2D(32, 3, padding="valid", activation="relu"),
@@ -101,14 +101,14 @@ CNN2 = tf.keras.Sequential(
         layers.Dense(64, activation="relu"),
         layers.Dense(10),
     ],
-    name='CNN2'
+    name='CNN_angle'
 )
 
 inputs = layers.Input((image_shape[0], image_shape[1], 3)) #RGB images of size (x, y)
 
 #add the CNN layers before the dense layers
-x = CNN1(inputs) #assuming CNN is a layer or a model
-y = CNN2(inputs)
+x = CNN_speed(inputs) #assuming CNN is a layer or a model
+y = CNN_angle(inputs)
 
 #you can define multiple outputs from x
 speed_output = layers.Dense(1, activation=None, name='speed')(x) #binary classification
