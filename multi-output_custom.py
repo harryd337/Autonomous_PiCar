@@ -74,9 +74,9 @@ AUTOTUNE = tf.data.AUTOTUNE
 train_set = train_set.cache().prefetch(buffer_size=AUTOTUNE)
 val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
 
-CNN = tf.keras.Sequential(
+CNN1 = tf.keras.Sequential(
     [
-        tf.keras.Input(shape=(32, 32, 3)),
+        tf.keras.Input(shape=image_shape+(3,)),
         tf.keras.layers.Conv2D(32, 3, padding="valid", activation="relu"),
         tf.keras.layers.MaxPooling2D(),
         tf.keras.layers.Conv2D(64, 3, activation="relu"),
@@ -85,20 +85,37 @@ CNN = tf.keras.Sequential(
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(64, activation="relu"),
         tf.keras.layers.Dense(10),
-    ]
+    ],
+    name='CNN1'
 )
 
-inp = tf.keras.layers.Input((image_shape[0], image_shape[1], 3)) #RGB images of size (x, y)
+CNN2 = tf.keras.Sequential(
+    [
+        tf.keras.Input(shape=image_shape+(3,)),
+        tf.keras.layers.Conv2D(32, 3, padding="valid", activation="relu"),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Conv2D(64, 3, activation="relu"),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Conv2D(128, 3, activation="relu"),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(64, activation="relu"),
+        tf.keras.layers.Dense(10),
+    ],
+    name='CNN2'
+)
 
-#add the classifier layers before the dense layers
-x = CNN(inp) #assuming CNN is a layer or a model
+inputs = tf.keras.layers.Input((image_shape[0], image_shape[1], 3)) #RGB images of size (x, y)
+
+#add the CNN layers before the dense layers
+x = CNN1(inputs) #assuming CNN is a layer or a model
+y = CNN2(inputs)
 
 #you can define multiple outputs from x
-classification_output = tf.keras.layers.Dense(1, activation=None, name='speed')(x) #binary classification
-regression_output = tf.keras.layers.Dense(1, activation='linear', name='angle')(x) #regression
+speed_output = tf.keras.layers.Dense(1, activation=None, name='speed')(x) #binary classification
+angle_output = tf.keras.layers.Dense(1, activation='linear', name='angle')(y) #regression
 
 #create a model with one input and two outputs
-model = tf.keras.models.Model(inputs=inp, outputs=[classification_output, regression_output])
+model = tf.keras.models.Model(inputs=inputs, outputs=[speed_output, angle_output])
 
 model.summary()
 
@@ -138,12 +155,12 @@ model.compile(
         'angle': tf.keras.losses.MeanSquaredError()
     },
     metrics={
-        'speed': ['accuracy', f1_score],
+        'speed': f1_score,
         'angle': 'mse'
     },
     loss_weights={
-        'speed': 0.5,
-        'angle': 0.5
+        'speed': 1,
+        'angle': 1
     }
 )
 
@@ -175,5 +192,5 @@ predictions_df['speed'] = speed_predictions
 boundary = lambda x: 1 if x > 0.5 else 0
 predictions_df['speed'] = predictions_df['speed'].apply(boundary)
 
-predictions_df.to_csv('submission.csv', index=False)
+#predictions_df.to_csv('submission.csv', index=False)
 #%%
