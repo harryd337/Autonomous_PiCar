@@ -80,7 +80,6 @@ data_augmentation_speed = tf.keras.Sequential([
 ])
 
 CNN_speed = tf.keras.Sequential(
-CNN_speed = tf.keras.Sequential(
     [
         Input(shape=image_shape+(3,)),
         layers.Conv2D(32, 3, padding="valid", activation="relu"),
@@ -107,7 +106,6 @@ CNN_angle = tf.keras.Sequential(
         layers.Dense(64, activation="relu"),
         layers.Dense(10),
     ],
-    name='CNN_angle'
     name='CNN_angle'
 )
 
