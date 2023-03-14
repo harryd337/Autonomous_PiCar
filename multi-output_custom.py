@@ -80,6 +80,7 @@ data_augmentation_speed = tf.keras.Sequential([
 ])
 
 CNN_speed = tf.keras.Sequential(
+CNN_speed = tf.keras.Sequential(
     [
         Input(shape=image_shape+(3,)),
         layers.Conv2D(32, 3, padding="valid", activation="relu"),
@@ -107,12 +108,15 @@ CNN_angle = tf.keras.Sequential(
         layers.Dense(10),
     ],
     name='CNN_angle'
+    name='CNN_angle'
 )
 
 inputs = layers.Input((image_shape[0], image_shape[1], 3)) #RGB images of size (x, y)
 
 #add the CNN layers before the dense layers
 x = CNN_speed(inputs)
+y = CNN_angle(inputs)
+x = CNN_speed(inputs) #assuming CNN is a layer or a model
 y = CNN_angle(inputs)
 
 #you can define multiple outputs from x
