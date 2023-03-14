@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 import random
 import datetime
-import tensorflow_hub as hub
+from tensorflow.keras import layers, Input
 K = tf.keras.backend
 
 K.clear_session()
@@ -76,43 +76,43 @@ val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
 
 CNN1 = tf.keras.Sequential(
     [
-        tf.keras.Input(shape=image_shape+(3,)),
-        tf.keras.layers.Conv2D(32, 3, padding="valid", activation="relu"),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(64, 3, activation="relu"),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(128, 3, activation="relu"),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation="relu"),
-        tf.keras.layers.Dense(10),
+        Input(shape=image_shape+(3,)),
+        layers.Conv2D(32, 3, padding="valid", activation="relu"),
+        layers.MaxPooling2D(),
+        layers.Conv2D(64, 3, activation="relu"),
+        layers.MaxPooling2D(),
+        layers.Conv2D(128, 3, activation="relu"),
+        layers.Flatten(),
+        layers.Dense(64, activation="relu"),
+        layers.Dense(10),
     ],
     name='CNN1'
 )
 
 CNN2 = tf.keras.Sequential(
     [
-        tf.keras.Input(shape=image_shape+(3,)),
-        tf.keras.layers.Conv2D(32, 3, padding="valid", activation="relu"),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(64, 3, activation="relu"),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(128, 3, activation="relu"),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation="relu"),
-        tf.keras.layers.Dense(10),
+        Input(shape=image_shape+(3,)),
+        layers.Conv2D(32, 3, padding="valid", activation="relu"),
+        layers.MaxPooling2D(),
+        layers.Conv2D(64, 3, activation="relu"),
+        layers.MaxPooling2D(),
+        layers.Conv2D(128, 3, activation="relu"),
+        layers.Flatten(),
+        layers.Dense(64, activation="relu"),
+        layers.Dense(10),
     ],
     name='CNN2'
 )
 
-inputs = tf.keras.layers.Input((image_shape[0], image_shape[1], 3)) #RGB images of size (x, y)
+inputs = layers.Input((image_shape[0], image_shape[1], 3)) #RGB images of size (x, y)
 
 #add the CNN layers before the dense layers
 x = CNN1(inputs) #assuming CNN is a layer or a model
 y = CNN2(inputs)
 
 #you can define multiple outputs from x
-speed_output = tf.keras.layers.Dense(1, activation=None, name='speed')(x) #binary classification
-angle_output = tf.keras.layers.Dense(1, activation='linear', name='angle')(y) #regression
+speed_output = layers.Dense(1, activation=None, name='speed')(x) #binary classification
+angle_output = layers.Dense(1, activation='linear', name='angle')(y) #regression
 
 #create a model with one input and two outputs
 model = tf.keras.models.Model(inputs=inputs, outputs=[speed_output, angle_output])
