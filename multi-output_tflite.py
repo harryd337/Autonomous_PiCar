@@ -32,11 +32,13 @@ image_shape = (32, 32)
 # -----------------------
 
 if on_colab:
-    path_to_data = Path("/content/drive/My Drive/machine-learning-in-science-ii-2023")
-    image_paths_csv = pd.read_csv(str(path_to_data/'training_norm_paths_googledrive.csv'))
+    path_to_data = Path("/content/drive/MyDrive/machine-learning-in-science-ii-2023")
+    train_image_paths_csv = pd.read_csv(str(path_to_data/'training_norm_paths_googledrive.csv'))
+    test_image_paths_csv = pd.read_csv(str(path_to_data/'test_image_paths_googledrive.csv'))
 else:
     path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
-    image_paths_csv = pd.read_csv(str(path_to_data/'training_norm_paths.csv'))
+    train_image_paths_csv = pd.read_csv(str(path_to_data/'training_norm_paths.csv'))
+    test_image_paths_csv = pd.read_csv(str(path_to_data/'test_image_paths.csv'))
     
 if logging:
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -69,9 +71,9 @@ def f1_score(y_true, y_pred):
     f1_score = 2 * ((precision * recall) / (precision + recall + K.epsilon()))
     return f1_score
 
-dataset = tf.data.Dataset.from_tensor_slices((image_paths_csv['image_path'],
-                                              image_paths_csv['speed'],
-                                              image_paths_csv['angle']))
+dataset = tf.data.Dataset.from_tensor_slices((train_image_paths_csv['image_path'],
+                                              train_image_paths_csv['speed'],
+                                              train_image_paths_csv['angle']))
 
 # Define a function that maps each row to an image and a pair of labels
 def load_training_images_and_labels(image_path, speed_label, angle_label):
@@ -183,14 +185,20 @@ if logging:
     tf.profiler.experimental.stop()
     # to view log execute: "tensorboard --logdir=logs/fit/"
 #%%
-test_ds = tf.keras.utils.image_dataset_from_directory(
-    path_to_data/'test_data/test_data',
-    labels=None,
-    batch_size=batch_size,
-    image_size=image_shape)
+# --- TESTING ---
+# Load the testing data in the exact same way as the training data
+test_set = tf.data.Dataset.from_tensor_slices(test_image_paths_csv['image_path'])
 
-# Make predictions on the test data
-predictions = model.predict(test_ds)
+def load_testing_images(image_path):
+    image = tf.io.read_file(image_path)
+    image = tf.image.decode_png(image, channels=3)
+    image = tf.image.resize(image, image_shape)
+    image = tf.expand_dims(image, axis=0)
+    return image
+
+test_set = test_set.map(load_testing_images)
+
+predictions = model.predict(test_set)
 
 speed_predictions = predictions[0]
 angle_predictions = predictions[1]
@@ -203,9 +211,21 @@ predictions_df['speed'] = speed_predictions
 boundary = lambda x: 1 if x > 0.5 else 0
 predictions_df['speed'] = predictions_df['speed'].apply(boundary)
 
-#predictions_df.to_csv('submission.csv', index=False)
+def discrete_angles():
+    training_norm = pd.read_csv(path_to_data/'training_norm.csv')
+    groups = training_norm.groupby('angle')
+    angles = []
+    for group_name, _ in groups:
+        angles.append(group_name)
+    return angles
+
+angles = discrete_angles()
+closest_angle_round = lambda x: angles[min(range(len(angles)), key = lambda i: abs(angles[i]-x))]
+predictions_df['angle'] = predictions_df['angle'].apply(closest_angle_round)
+
+predictions_df.to_csv('submissions/submission.csv', index=False)
 #%%
-# Save model
-save_path = Path(__file__).parent /"models/1/"
+# --- SAVE MODEL ---
+version = '1'
+save_path = Path(__file__).parent /f"models/{version}/"
 tf.saved_model.save(model, save_path)
-#%%
