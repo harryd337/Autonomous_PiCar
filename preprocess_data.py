@@ -1,3 +1,4 @@
+#%%
 import os
 from pathlib import Path
 from PIL import Image
@@ -58,6 +59,7 @@ def filter_non_integer_speeds(directory):
         non_integer_image_ids.append(int(training_norm.iloc[indexes[0]].image_id))
     for i, image_id in enumerate(non_integer_image_ids):
         delete_image(directory/f"{image_id}.png")
+        remove_from_csv(directory/f"{image_id}.png")
 
 def filter_images(directory):
     filter_corrupted_images(directory)
@@ -87,6 +89,8 @@ def categorise_images():
     move_images(images_speed_one, path_to_data/'training_data/1')
 
 path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
-training_norm = pd.read_csv(path_to_data/'training_norm.csv')
-filter_images(path_to_data/'training_data/training_data')
-categorise_images()
+training_norm = pd.read_csv(path_to_data/'training_norm - original.csv')
+filter_images(path_to_data/'training_data/combined')
+training_norm.to_csv(str(path_to_data/'training_norm.csv'))
+#categorise_images()
+#%%
