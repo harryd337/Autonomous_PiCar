@@ -29,6 +29,8 @@ epochs = 2
 train_val_split = 0.8
 logging = False # log using tensorboard
 image_shape = (32, 32)
+min_delta = 0.005
+patience = 7
 # -----------------------
 
 if on_colab:
@@ -177,9 +179,14 @@ model.compile(
     }
 )
 
+callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                            min_delta=min_delta,
+                                            patience=patience)
+
 history = model.fit(train_set,
                    epochs=epochs,
-                   validation_data=val_set)
+                   validation_data=val_set,
+                   callbacks=[callback])
 
 if logging:
     tf.profiler.experimental.stop()
@@ -211,21 +218,16 @@ predictions_df['speed'] = speed_predictions
 boundary = lambda x: 1 if x > 0.5 else 0
 predictions_df['speed'] = predictions_df['speed'].apply(boundary)
 
-def discrete_angles():
-    training_norm = pd.read_csv(path_to_data/'training_norm.csv')
-    groups = training_norm.groupby('angle')
-    angles = []
-    for group_name, _ in groups:
-        angles.append(group_name)
-    return angles
-
-angles = discrete_angles()
-closest_angle_round = lambda x: angles[min(range(len(angles)), key = lambda i: abs(angles[i]-x))]
+angles = [0.0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625,
+          0.625, 0.6875, 0.75, 0.8125, 0.875, 0.9375, 1.0]
+closest_angle_round = lambda x: angles[min(range(len(angles)),
+                                           key = lambda i: abs(angles[i]-x))]
 predictions_df['angle'] = predictions_df['angle'].apply(closest_angle_round)
 
-predictions_df.to_csv('submissions/submission.csv', index=False)
+val_loss = str(round(history.history['val_loss'][-1], 5))
+predictions_df.to_csv(f"submissions/submission-{val_loss}.csv", index=False)
 #%%
 # --- SAVE MODEL ---
-version = '1'
-save_path = Path(__file__).parent /f"models/{version}/"
+save_path = Path(__file__).parent /f"models/{val_loss}/"
 tf.saved_model.save(model, save_path)
+#%%
