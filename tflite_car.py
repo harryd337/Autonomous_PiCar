@@ -1,7 +1,10 @@
 #%%
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-import tensorflow as tf
+import tensorflow.lite
+from tensorflow.io import read_file
+from tensorflow.image import decode_png, resize
+from tensorflow import expand_dims
 from pathlib import Path
 
 # LOAD TFLITE MODEL
@@ -11,7 +14,7 @@ model_path = str(Path(__file__).parent / f"models/tflite/{str(model_num)}/\
 model.tflite")
 # -----------------------
 
-interpreter = tf.lite.Interpreter(model_path=model_path)
+interpreter = tensorflow.lite.Interpreter(model_path=model_path)
 interpreter.allocate_tensors()
 
 # Get input and output tensors.
@@ -35,10 +38,10 @@ image_path = str(Path(__file__).parent / f"./machine-learning-in-science-ii-\
 # -----------------------
 
 def inference(image_path):
-    image = tf.io.read_file(image_path)
-    image = tf.image.decode_png(image, channels=image_channels)
-    image = tf.image.resize(image, image_shape)
-    image = tf.expand_dims(image, axis=0)
+    image = read_file(image_path)
+    image = decode_png(image, channels=image_channels)
+    image = resize(image, image_shape)
+    image = expand_dims(image, axis=0)
 
     interpreter.set_tensor(input_details[0]['index'], image)
     interpreter.invoke()
