@@ -13,7 +13,7 @@ import numpy as np
 import random
 import datetime
 from tensorflow.keras import layers, Input
-K = tf.keras.backend
+import tensorflow.keras.backend as K
 
 K.clear_session()
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -228,6 +228,15 @@ val_loss = str(round(history.history['val_loss'][-1], 5))
 predictions_df.to_csv(f"submissions/submission-{val_loss}.csv", index=False)
 #%%
 # --- SAVE MODEL ---
-save_path = Path(__file__).parent /f"models/{val_loss}/"
-tf.saved_model.save(model, save_path)
+path_to_models = Path(__file__).parent/'models'
+tf_save_path = str(path_to_models/f"tf/{val_loss}/")
+tf.saved_model.save(model, tf_save_path)
+
+# Convert the model to tflite
+tflite_model = tf.lite.TFLiteConverter.from_saved_model(save_path).convert()
+
+tflite_save_path = path_to_models/f"tflite/{val_loss}"
+os.mkdir(tflite_save_path)
+with open(tflite_save_path/'model.tflite', 'wb') as f:
+    f.write(tflite_model)
 #%%
