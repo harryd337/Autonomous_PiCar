@@ -28,8 +28,8 @@ if num_physical_devices > 0:
 batch_size = 32
 epochs = 32
 train_val_split = 0.8
-logging = False # log using tensorboard
 image_shape = (32, 32)
+logging = False # log using tensorboard
 # Early stopping:
 min_delta = 0.005
 patience = 0
@@ -222,13 +222,17 @@ if logging:
     tf.profiler.experimental.stop()
     # to view log execute: "tensorboard --logdir=logs/fit/"
 
+lowest_val_loss = str(round(min(history.history['val_loss']), 5))
+print(f"Lowest validation loss: {lowest_val_loss}")
+#%%
 # Plot training curve
+epoch_offset = 5
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 epochs_range = range(epochs)
 plt.subplot(1, 2, 2)
-plt.plot(epochs_range[10:], loss[10:], label='Training Loss')
-plt.plot(epochs_range[10:], val_loss[10:], label='Validation Loss')
+plt.plot(epochs_range[epoch_offset:], loss[epoch_offset:], label='Training Loss')
+plt.plot(epochs_range[epoch_offset:], val_loss[epoch_offset:], label='Validation Loss')
 plt.legend(loc='upper right')
 plt.title('Training and Validation Loss')
 plt.show()
@@ -265,18 +269,17 @@ closest_angle_round = lambda x: angles[min(range(len(angles)),
                                            key = lambda i: abs(angles[i]-x))]
 predictions_df['angle'] = predictions_df['angle'].apply(closest_angle_round)
 
-val_loss = str(round(min(history.history['val_loss']), 5))
-predictions_df.to_csv(f"submissions/submission-{val_loss}.csv", index=False)
+predictions_df.to_csv(f"submissions/submission-{lowest_val_loss}.csv", index=False)
 #%%
 # --- SAVE MODEL ---
 path_to_models = Path(__file__).parent/'models'
-tf_save_path = str(path_to_models/f"tf/{val_loss}/")
+tf_save_path = str(path_to_models/f"tf/{lowest_val_loss}/")
 tf.saved_model.save(model, tf_save_path)
 
 # Convert the model to tflite
-tflite_model = tf.lite.TFLiteConverter.from_saved_model(save_path).convert()
+tflite_model = tf.lite.TFLiteConverter.from_saved_model(tf_save_path).convert()
 
-tflite_save_path = path_to_models/f"tflite/{val_loss}"
+tflite_save_path = path_to_models/f"tflite/{lowest_val_loss}"
 os.mkdir(tflite_save_path)
 with open(tflite_save_path/'model.tflite', 'wb') as f:
     f.write(tflite_model)
