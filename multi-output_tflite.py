@@ -14,6 +14,7 @@ import random
 import datetime
 from tensorflow.keras import layers, Input
 import tensorflow.keras.backend as K
+import matplotlib.pyplot as plt
 
 K.clear_session()
 physical_devices = tf.config.list_physical_devices('GPU')
@@ -24,16 +25,16 @@ if num_physical_devices > 0:
     tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
 # --- HYPERPARAMETERS ---
-batch_size = 20
-epochs = 50
+batch_size = 32
+epochs = 32
 train_val_split = 0.8
 logging = False # log using tensorboard
 image_shape = (32, 32)
 # Early stopping:
 min_delta = 0.005
-patience = 8
+patience = 0
 baseline = None
-start_from_epoch = 80
+start_from_epoch = 50
 # -----------------------
 
 if on_colab:
@@ -115,7 +116,7 @@ class CNNs(tf.keras.Model):
         
         self.shared_augment = tf.keras.Sequential([
             layers.Lambda(lambda x:
-                self.random_brightness(x, max_delta=0.6), input_shape=image_shape+(3,))
+                self.random_brightness(x, max_delta=0.2), input_shape=image_shape+(3,))
         ])
         
         # speed_augment = tf.keras.Sequential([
@@ -165,8 +166,11 @@ class CNNs(tf.keras.Model):
             tf.image.stateless_random_brightness(image, max_delta=max_delta, seed=seed), x)
     
     @tf.function
-    def call(self, inputs):
-        z = self.shared_augment(inputs)
+    def call(self, inputs, training=False):
+        if training:
+            z = self.shared_augment(inputs)
+        else:
+            z = inputs
         x = self.CNN_speed(z)
         y = self.CNN_angle(z)
         
@@ -206,7 +210,8 @@ callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
                                             min_delta=min_delta,
                                             patience=patience,
                                             baseline=baseline,
-                                            start_from_epoch=start_from_epoch)
+                                            start_from_epoch=start_from_epoch,
+                                            restore_best_weights=True)
 
 history = model.fit(train_set,
                    epochs=epochs,
@@ -216,14 +221,14 @@ history = model.fit(train_set,
 if logging:
     tf.profiler.experimental.stop()
     # to view log execute: "tensorboard --logdir=logs/fit/"
-    
+
 # Plot training curve
 loss = history.history['loss']
 val_loss = history.history['val_loss']
 epochs_range = range(epochs)
 plt.subplot(1, 2, 2)
-plt.plot(epochs_range, loss, label='Training Loss')
-plt.plot(epochs_range, val_loss, label='Validation Loss')
+plt.plot(epochs_range[10:], loss[10:], label='Training Loss')
+plt.plot(epochs_range[10:], val_loss[10:], label='Validation Loss')
 plt.legend(loc='upper right')
 plt.title('Training and Validation Loss')
 plt.show()
@@ -260,7 +265,7 @@ closest_angle_round = lambda x: angles[min(range(len(angles)),
                                            key = lambda i: abs(angles[i]-x))]
 predictions_df['angle'] = predictions_df['angle'].apply(closest_angle_round)
 
-val_loss = str(round(history.history['val_loss'][-1], 5))
+val_loss = str(round(min(history.history['val_loss']), 5))
 predictions_df.to_csv(f"submissions/submission-{val_loss}.csv", index=False)
 #%%
 # --- SAVE MODEL ---
