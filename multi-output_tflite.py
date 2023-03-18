@@ -25,12 +25,15 @@ if num_physical_devices > 0:
 
 # --- HYPERPARAMETERS ---
 batch_size = 20
-epochs = 2
+epochs = 50
 train_val_split = 0.8
 logging = False # log using tensorboard
 image_shape = (32, 32)
+# Early stopping:
 min_delta = 0.005
-patience = 7
+patience = 8
+baseline = None
+start_from_epoch = 80
 # -----------------------
 
 if on_colab:
@@ -105,18 +108,29 @@ AUTOTUNE = tf.data.AUTOTUNE
 train_set = train_set.cache().prefetch(buffer_size=AUTOTUNE)
 val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
 
-data_augmentation_speed = tf.keras.Sequential([
-  layers.RandomFlip("horizontal_and_vertical"),
-  layers.RandomRotation(0.2),
-])
-
 class CNNs(tf.keras.Model):
     def __init__(self, image_shape, name='CNNs'):
         super(CNNs, self).__init__(name=name)
         self.image_shape = image_shape
         
+        self.shared_augment = tf.keras.Sequential([
+            layers.Lambda(lambda x:
+                self.random_brightness(x, max_delta=0.6), input_shape=image_shape+(3,))
+        ])
+        
+        # speed_augment = tf.keras.Sequential([
+        #     layers.RandomFlip("horizontal_and_vertical"),
+        #     layers.RandomRotation(0.2)
+        #     ])
+        
+        # angle_augment = tf.keras.Sequential([
+        #     layers.RandomFlip("horizontal_and_vertical"),
+        #     layers.RandomRotation(0.2)
+        #     ])
+        
         self.CNN_speed = tf.keras.Sequential([
             Input(shape=image_shape+(3,)),
+            #speed_augment,
             layers.Conv2D(32, 3, padding="valid", activation="relu"),
             layers.MaxPooling2D(),
             layers.Conv2D(64, 3, activation="relu"),
@@ -129,6 +143,7 @@ class CNNs(tf.keras.Model):
         
         self.CNN_angle = tf.keras.Sequential([
             Input(shape=image_shape+(3,)),
+            #angle_augment,
             layers.Conv2D(32, 3, padding="valid", activation="relu"),
             layers.MaxPooling2D(),
             layers.Conv2D(64, 3, activation="relu"),
@@ -142,21 +157,29 @@ class CNNs(tf.keras.Model):
         self.speed_output = tf.keras.layers.Dense(1, activation=None, name='speed')
         self.angle_output = tf.keras.layers.Dense(1, activation='linear', name='angle')
     
+    def random_brightness(self, x, max_delta):
+        seed = tf.random.experimental.stateless_split(
+            tf.random.uniform(shape=[2], minval=0, maxval=2**31-1, dtype=tf.int32),
+            num=1)[0]
+        return tf.map_fn(lambda image:
+            tf.image.stateless_random_brightness(image, max_delta=max_delta, seed=seed), x)
+    
     @tf.function
     def call(self, inputs):
-        x = self.CNN_speed(inputs)
-        y = self.CNN_angle(inputs)
+        z = self.shared_augment(inputs)
+        x = self.CNN_speed(z)
+        y = self.CNN_angle(z)
         
         speed_output = self.speed_output(x)
         angle_output = self.angle_output(y)
         return [speed_output, angle_output]
 
-inputs = tf.keras.layers.Input(shape=image_shape + (3,))
+inputs = tf.keras.layers.Input(shape=image_shape+(3,))
 [speed_output, angle_output] = CNNs(image_shape)(inputs)
 
 # Name outputs
-speed_output = tf.keras.layers.Lambda(lambda x: x, name='speed')(speed_output)
-angle_output = tf.keras.layers.Lambda(lambda x: x, name='angle')(angle_output)
+speed_output = layers.Lambda(lambda x: x, name='speed')(speed_output)
+angle_output = layers.Lambda(lambda x: x, name='angle')(angle_output)
 
 model = tf.keras.models.Model(inputs=inputs, outputs=[speed_output, angle_output])
 
@@ -181,7 +204,9 @@ model.compile(
 
 callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
                                             min_delta=min_delta,
-                                            patience=patience)
+                                            patience=patience,
+                                            baseline=baseline,
+                                            start_from_epoch=start_from_epoch)
 
 history = model.fit(train_set,
                    epochs=epochs,
@@ -191,6 +216,17 @@ history = model.fit(train_set,
 if logging:
     tf.profiler.experimental.stop()
     # to view log execute: "tensorboard --logdir=logs/fit/"
+    
+# Plot training curve
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs_range = range(epochs)
+plt.subplot(1, 2, 2)
+plt.plot(epochs_range, loss, label='Training Loss')
+plt.plot(epochs_range, val_loss, label='Validation Loss')
+plt.legend(loc='upper right')
+plt.title('Training and Validation Loss')
+plt.show()
 #%%
 # --- TESTING ---
 # Load the testing data in the exact same way as the training data
