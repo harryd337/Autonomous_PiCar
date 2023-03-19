@@ -49,6 +49,9 @@ def inference(image_path):
 
     speed_prediction = boundary(speed_prediction)
     angle_prediction = closest_angle_round(angle_prediction)
+    
+    speed_prediction = speed_prediction*35
+    angle_prediction = int(angle_prediction*80 + 50)
     return speed_prediction, angle_prediction
 #%%
 # INFERENCE
