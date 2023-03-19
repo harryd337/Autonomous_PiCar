@@ -2,3 +2,9 @@ machine-learning-in-science-ii-2023/
 logs/
 submissions/
 models/
+loaded_model_results.csv
+loaded_tflite_model_results.csv
+classification.py
+exampleCNN.py
+regression.py
+tests/__pycache__/GPU_availability_test.cpython-39.pyc
