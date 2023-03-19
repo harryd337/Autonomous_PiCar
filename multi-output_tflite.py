@@ -172,6 +172,7 @@ def train_model():
     )
 
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+                                                start_from_epoch=1000,
                                                 restore_best_weights=True)
 
     if logging:
