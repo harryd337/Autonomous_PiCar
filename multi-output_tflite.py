@@ -61,14 +61,27 @@ def f1_score(y_true, y_pred):
     f1_score = 2 * ((precision * recall) / (precision + recall + K.epsilon()))
     return f1_score
 
-# Define a function that maps each row to an image and a pair of labels
 def load_training_images_and_labels(image_path, speed_label, angle_label):
+    # Define a function that maps each row to an image and a pair of labels
     image = tf.io.read_file(image_path)
     image = tf.image.decode_png(image, channels=3)
     image = tf.image.resize(image, image_shape)
     speed_label = tf.cast(speed_label, tf.int32)
     angle_label = tf.cast(angle_label, tf.float32)
     return image, (speed_label, angle_label)
+
+def augment(image_label, seed):
+    image, label = image_label
+    new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
+    random_num = random.randrange(2)
+    if random_num == 0:
+        # Random brightness.
+        image = tf.image.stateless_random_brightness(
+            image, max_delta=0.5, seed=new_seed)
+    elif random_num == 1:
+        image = tf.image.stateless_random_contrast(
+            image, lower=0.3, upper=0.7, seed=new_seed)
+    return image, label
 
 def build_training_and_validation_sets():
     dataset = tf.data.Dataset.from_tensor_slices((train_image_paths['image_path'],
@@ -85,6 +98,10 @@ def build_training_and_validation_sets():
     val_set = dataset.skip(train_batches)
 
     AUTOTUNE = tf.data.AUTOTUNE
+    counter = tf.data.Dataset.counter()
+    train_set = tf.data.Dataset.zip((train_set, (counter, counter)))
+    train_set = train_set.map(augment, num_parallel_calls=AUTOTUNE)
+    
     train_set = train_set.cache().prefetch(buffer_size=AUTOTUNE)
     val_set = val_set.cache().prefetch(buffer_size=AUTOTUNE)
     return train_set, val_set
@@ -95,19 +112,16 @@ class CNNs(tf.keras.Model):
         super(CNNs, self).__init__(name=name)
         self.image_shape = image_shape
         
-        self.shared_augment = tf.keras.Sequential([
-            layers.Lambda(lambda x:
-                self.random_brightness(x, max_delta=0.2), input_shape=image_shape+(3,))
-        ])
+        # self.shared_augment = tf.keras.Sequential([
+        #     layers.Lambda(lambda x:
+        #         self.random_augmentation(x), input_shape=image_shape+(3,))
+        # ])
         
         # speed_augment = tf.keras.Sequential([
-        #     layers.RandomFlip("horizontal_and_vertical"),
-        #     layers.RandomRotation(0.2)
-        #     ])
-        
-        # angle_augment = tf.keras.Sequential([
-        #     layers.RandomFlip("horizontal_and_vertical"),
-        #     layers.RandomRotation(0.2)
+        #     #layers.RandomFlip("horizontal_and_vertical"),
+        #     #layers.RandomRotation(0.2),
+        #     layers.RandomContrast(factor=(0.3, 0.7)),
+        #     layers.Lambda(lambda x: tf.stop_gradient(x))
         #     ])
         
         self.CNN_speed = tf.keras.Sequential([
@@ -125,7 +139,6 @@ class CNNs(tf.keras.Model):
         
         self.CNN_angle = tf.keras.Sequential([
             Input(shape=image_shape+(3,)),
-            #angle_augment,
             layers.Conv2D(32, 3, padding="valid", activation="relu"),
             layers.MaxPooling2D(),
             layers.Conv2D(64, 3, activation="relu"),
@@ -139,21 +152,14 @@ class CNNs(tf.keras.Model):
         self.speed_output = tf.keras.layers.Dense(1, activation=None, name='speed')
         self.angle_output = tf.keras.layers.Dense(1, activation='linear', name='angle')
     
-    def random_brightness(self, x, max_delta):
-        seed = tf.random.experimental.stateless_split(
-            tf.random.uniform(shape=[2], minval=0, maxval=2**31-1, dtype=tf.int32),
-            num=1)[0]
-        return tf.map_fn(lambda image:
-            tf.image.stateless_random_brightness(image, max_delta=max_delta, seed=seed), x)
-    
     @tf.function
     def call(self, inputs, training=False):
-        if training:
-            z = self.shared_augment(inputs)
-        else:
-            z = inputs
-        x = self.CNN_speed(z)
-        y = self.CNN_angle(z)
+        # if training:
+        #     z = self.shared_augment(inputs)
+        # else:
+        #     z = inputs
+        x = self.CNN_speed(inputs)
+        y = self.CNN_angle(inputs)
         
         speed_output = self.speed_output(x)
         angle_output = self.angle_output(y)
@@ -211,7 +217,7 @@ def train_model():
 #%%
 # --- HYPERPARAMETERS ---
 batch_size = 40
-epochs = 50
+epochs = 75
 train_val_split = 0.8
 image_shape = (32, 32)
 logging = False # log using tensorboard
@@ -219,7 +225,7 @@ logging = False # log using tensorboard
 min_delta = 0.005
 patience = 0
 baseline = None
-start_from_epoch = 50
+start_from_epoch = 120
 # -----------------------
 
 initialise_session()
@@ -259,7 +265,7 @@ def build_test_set():
     test_set = test_set.map(load_testing_images)
     return test_set
 
-def threshold_predictions():
+def threshold_predictions(predictions_df):
     boundary = lambda x: 1 if x > 0.5 else 0
     predictions_df['speed'] = predictions_df['speed'].apply(boundary)
 
@@ -281,7 +287,7 @@ def make_predictions():
     predictions_df['angle'] = angle_predictions
     predictions_df['speed'] = speed_predictions
 
-    predictions_df = threshold_predictions()
+    predictions_df = threshold_predictions(predictions_df)
     return predictions_df
     
 def create_submission():
