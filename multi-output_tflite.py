@@ -73,14 +73,8 @@ def load_training_images_and_labels(image_path, speed_label, angle_label):
 def augment(image_label, seed):
     image, label = image_label
     new_seed = tf.random.experimental.stateless_split(seed, num=1)[0, :]
-    random_num = random.randrange(2)
-    if random_num == 0:
-        # Random brightness.
-        image = tf.image.stateless_random_brightness(
-            image, max_delta=0.5, seed=new_seed)
-    elif random_num == 1:
-        image = tf.image.stateless_random_contrast(
-            image, lower=0.3, upper=0.7, seed=new_seed)
+    image = tf.image.stateless_random_brightness(
+        image, max_delta=0.5, seed=new_seed)
     return image, label
 
 def build_training_and_validation_sets():
@@ -112,21 +106,8 @@ class CNNs(tf.keras.Model):
         super(CNNs, self).__init__(name=name)
         self.image_shape = image_shape
         
-        # self.shared_augment = tf.keras.Sequential([
-        #     layers.Lambda(lambda x:
-        #         self.random_augmentation(x), input_shape=image_shape+(3,))
-        # ])
-        
-        # speed_augment = tf.keras.Sequential([
-        #     #layers.RandomFlip("horizontal_and_vertical"),
-        #     #layers.RandomRotation(0.2),
-        #     layers.RandomContrast(factor=(0.3, 0.7)),
-        #     layers.Lambda(lambda x: tf.stop_gradient(x))
-        #     ])
-        
         self.CNN_speed = tf.keras.Sequential([
             Input(shape=image_shape+(3,)),
-            #speed_augment,
             layers.Conv2D(32, 3, padding="valid", activation="relu"),
             layers.MaxPooling2D(),
             layers.Conv2D(64, 3, activation="relu"),
@@ -153,11 +134,7 @@ class CNNs(tf.keras.Model):
         self.angle_output = tf.keras.layers.Dense(1, activation='linear', name='angle')
     
     @tf.function
-    def call(self, inputs, training=False):
-        # if training:
-        #     z = self.shared_augment(inputs)
-        # else:
-        #     z = inputs
+    def call(self, inputs):
         x = self.CNN_speed(inputs)
         y = self.CNN_angle(inputs)
         
@@ -195,10 +172,6 @@ def train_model():
     )
 
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                                min_delta=min_delta,
-                                                patience=patience,
-                                                baseline=baseline,
-                                                start_from_epoch=start_from_epoch,
                                                 restore_best_weights=True)
 
     if logging:
@@ -219,13 +192,8 @@ def train_model():
 batch_size = 40
 epochs = 75
 train_val_split = 0.8
-image_shape = (32, 32)
+image_shape = (48, 48) # (32, 32) works well
 logging = False # log using tensorboard
-# Early stopping:
-min_delta = 0.005
-patience = 0
-baseline = None
-start_from_epoch = 120
 # -----------------------
 
 initialise_session()
