@@ -6,6 +6,7 @@ import tensorflow.lite as tflite
 from tensorflow.io import read_file
 from tensorflow.image import decode_png, resize
 from tensorflow import expand_dims
+from tensorflow.errors import InvalidArgumentError
 from pathlib import Path
 
 # -----------------------
@@ -56,10 +57,16 @@ def inference(image_path):
 #%%
 # INFERENCE
 image_path = str(Path(__file__).parent / f"./machine-learning-in-science-ii-\
-2023/test_data/test_data/20.png")
+2023/test_data/test_data/26.png")
 
-speed_prediction, angle_prediction = inference(image_path)
-
-print(f"Speed prediction: {speed_prediction}")
-print(f"Angle prediction: {angle_prediction}")
+if os.path.exists(image_path):
+    try:
+        speed_prediction, angle_prediction = inference(image_path)
+        print(f"Speed prediction: {speed_prediction}")
+        print(f"Angle prediction: {angle_prediction}")
+    except InvalidArgumentError:
+        print('Skipped corrupt image')
+        pass
+else:
+    print('Image not found')
 #%%
