@@ -1,13 +1,13 @@
 #%%
-import os
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+# LOAD TFLITE MODEL
+from os import environ
+environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import tensorflow.lite as tflite
 from tensorflow.io import read_file
 from tensorflow.image import decode_png, resize
 from tensorflow import expand_dims
 from pathlib import Path
 
-# LOAD TFLITE MODEL
 # -----------------------
 model_num = 0.02477
 model_path = str(Path(__file__).parent / f"models/tflite/{str(model_num)}/\
@@ -21,9 +21,13 @@ interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-input_shape = input_details[0]['shape']
-image_shape = (input_shape[1], input_shape[2])
-image_channels = input_shape[3]
+def image_info():
+    input_shape = input_details[0]['shape']
+    image_shape = (input_shape[1], input_shape[2])
+    image_channels = input_shape[3]
+    return image_shape, image_channels
+
+image_shape, image_channels = image_info()
 
 boundary = lambda x: 1 if x > 0.5 else 0
 angles = [0.0, 0.0625, 0.125, 0.1875, 0.25, 0.3125, 0.375, 0.4375, 0.5, 0.5625,
