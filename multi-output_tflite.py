@@ -8,7 +8,9 @@ import pandas as pd
 import numpy as np
 import random
 import datetime
+import tensorflow.keras as keras
 from tensorflow.keras import layers, Input
+from tensorflow.keras.optimizers import Adam
 import tensorflow.keras.backend as K
 import matplotlib.pyplot as plt
 
@@ -101,24 +103,28 @@ def build_training_and_validation_sets():
     return train_set, val_set
 
 
-class CNNs(tf.keras.Model):
+class CNNs(keras.Model):
     def __init__(self, image_shape, name='CNNs'):
         super(CNNs, self).__init__(name=name)
         self.image_shape = image_shape
         
-        self.CNN_speed = tf.keras.Sequential([
+        self.CNN_speed = keras.Sequential([
             Input(shape=image_shape+(3,)),
-            layers.Conv2D(32, 3, padding="valid", activation="relu"),
+            layers.Conv2D(6, 3, padding="valid", activation="relu"),
+            layers.Dropout(0.8),
             layers.MaxPooling2D(),
-            layers.Conv2D(64, 3, activation="relu"),
+            layers.Conv2D(6, 3, activation="relu"),
+            layers.Dropout(0.8),
             layers.MaxPooling2D(),
-            layers.Conv2D(128, 3, activation="relu"),
+            layers.Conv2D(6, 3, activation="relu"),
+            layers.Dropout(0.8),
             layers.Flatten(),
             layers.Dense(64, activation="relu"),
-            layers.Dense(10),
+            layers.Dropout(0.8),
+            layers.Dense(10)
         ], name='CNN_speed')
         
-        self.CNN_angle = tf.keras.Sequential([
+        self.CNN_angle = keras.Sequential([
             Input(shape=image_shape+(3,)),
             layers.Conv2D(32, 3, padding="valid", activation="relu"),
             layers.MaxPooling2D(),
@@ -127,11 +133,11 @@ class CNNs(tf.keras.Model):
             layers.Conv2D(128, 3, activation="relu"),
             layers.Flatten(),
             layers.Dense(64, activation="relu"),
-            layers.Dense(10),
+            layers.Dense(10)
         ], name='CNN_angle')
 
-        self.speed_output = tf.keras.layers.Dense(1, activation=None, name='speed')
-        self.angle_output = tf.keras.layers.Dense(1, activation='linear', name='angle')
+        self.speed_output = keras.layers.Dense(1, activation=None, name='speed')
+        self.angle_output = keras.layers.Dense(1, activation='linear', name='angle')
     
     @tf.function
     def call(self, inputs):
@@ -144,26 +150,23 @@ class CNNs(tf.keras.Model):
 
 
 def build_model():
-    inputs = tf.keras.layers.Input(shape=image_shape+(3,))
+    inputs = keras.layers.Input(shape=image_shape+(3,))
     [speed_output, angle_output] = CNNs(image_shape)(inputs)
 
     # Name outputs
     speed_output = layers.Lambda(lambda x: x, name='speed')(speed_output)
     angle_output = layers.Lambda(lambda x: x, name='angle')(angle_output)
 
-    model = tf.keras.models.Model(inputs=inputs, outputs=[speed_output, angle_output])
+    model = keras.models.Model(inputs=inputs, outputs=[speed_output, angle_output])
     model.summary()
     return model
 
 def train_model():
     model.compile(
-        optimizer = tf.keras.mixed_precision.LossScaleOptimizer(tf.keras.optimizers.Adam()),
+        optimizer = keras.mixed_precision.LossScaleOptimizer(Adam()),
         loss={
-            'speed': tf.keras.losses.BinaryCrossentropy(from_logits=True),
-            'angle': tf.keras.losses.MeanSquaredError()
-        },
-        metrics={
-            'speed': f1_score
+            'speed': keras.losses.BinaryCrossentropy(from_logits=True),
+            'angle': keras.losses.MeanSquaredError()
         },
         loss_weights={
             'speed': 1,
@@ -171,7 +174,7 @@ def train_model():
         }
     )
 
-    callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
+    callback = keras.callbacks.EarlyStopping(monitor='val_loss',
                                                 start_from_epoch=1000,
                                                 restore_best_weights=True)
 
@@ -191,9 +194,9 @@ def train_model():
 #%%
 # --- HYPERPARAMETERS ---
 batch_size = 40
-epochs = 75
+epochs = 100
 train_val_split = 0.8
-image_shape = (48, 48) # (32, 32) works well
+image_shape = (32, 32) # (32, 32) works well
 logging = False # log using tensorboard
 # -----------------------
 
@@ -284,4 +287,24 @@ def save_tflite_model():
 
 path_to_models, tf_save_path = save_tf_model()
 save_tflite_model()
+#%%
+# TRAINING LOOP
+import time
+lowest_val_loss = 1
+while float(lowest_val_loss) > 0.005:
+    initialise_session()
+    path_to_data, train_image_paths, test_image_paths = load_files_and_paths()
+    train_set, val_set = build_training_and_validation_sets()
+    model = build_model()
+    model, history = train_model()
+    lowest_val_loss = str(round(min(history.history['val_loss']), 5))
+    print(f"Lowest validation loss: {lowest_val_loss}")
+    plot_training_curve(epoch_offset=5)
+    if float(lowest_val_loss) < 0.02:
+        test_set = build_test_set()
+        predictions_df = make_predictions()
+        create_submission()
+        path_to_models, tf_save_path = save_tf_model()
+        save_tflite_model()
+    time.sleep(10)
 #%%
