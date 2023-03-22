@@ -110,17 +110,30 @@ class CNNs(keras.Model):
         
         self.CNN_speed = keras.Sequential([
             Input(shape=image_shape+(3,)),
-            layers.Conv2D(6, 3, padding="valid", activation="relu"),
-            layers.Dropout(0.8),
+            layers.Conv2D(32, 3,
+                          padding="valid",
+                          activation="relu",
+                          kernel_regularizer=keras.regularizers.l2(0.001)
+                          ),
+            layers.Dropout(0.5),
             layers.MaxPooling2D(),
-            layers.Conv2D(6, 3, activation="relu"),
-            layers.Dropout(0.8),
+            layers.Conv2D(64, 3,
+                          activation="relu",
+                          kernel_regularizer=keras.regularizers.l2(0.001)
+                          ),
+            layers.Dropout(0.5),
             layers.MaxPooling2D(),
-            layers.Conv2D(6, 3, activation="relu"),
-            layers.Dropout(0.8),
+            layers.Conv2D(128, 3,
+                          activation="relu",
+                          kernel_regularizer=keras.regularizers.l2(0.005)
+                          ),
+            layers.Dropout(0.5),
             layers.Flatten(),
-            layers.Dense(64, activation="relu"),
-            layers.Dropout(0.8),
+            layers.Dense(64,
+                         activation="relu",
+                         kernel_regularizer=keras.regularizers.l2(0.01)
+                         ),
+            layers.Dropout(0.5),
             layers.Dense(10)
         ], name='CNN_speed')
         
@@ -174,7 +187,7 @@ def train_model():
         }
     )
 
-    callback = keras.callbacks.EarlyStopping(monitor='val_loss',
+    callback = keras.callbacks.EarlyStopping(monitor='val_speed_loss',
                                                 start_from_epoch=1000,
                                                 restore_best_weights=True)
 
@@ -206,19 +219,22 @@ train_set, val_set = build_training_and_validation_sets()
 model = build_model()
 model, history = train_model()
 
-lowest_val_loss = str(round(min(history.history['val_loss']), 5))
-print(f"Lowest validation loss: {lowest_val_loss}")
+lowest_val_loss = str(round(min(history.history['speed_loss']), 5))
+print(f"Lowest speed loss: {lowest_val_loss}")
+
+lowest_val_loss = str(round(min(history.history['val_speed_loss']), 5))
+print(f"Lowest validation speed loss: {lowest_val_loss}")
 #%%
 # Plot training curve
 def plot_training_curve(epoch_offset):
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
+    loss = history.history['speed_loss']
+    val_loss = history.history['val_speed_loss']
     epochs_range = range(epochs)
     plt.subplot(1, 2, 2)
     plt.plot(epochs_range[epoch_offset:], loss[epoch_offset:], label='Training Loss')
     plt.plot(epochs_range[epoch_offset:], val_loss[epoch_offset:], label='Validation Loss')
     plt.legend(loc='upper right')
-    plt.title('Training and Validation Loss')
+    plt.title('Training and Validation Speed Loss')
     plt.show()
     
 plot_training_curve(epoch_offset=5)
@@ -263,7 +279,7 @@ def make_predictions():
     return predictions_df
     
 def create_submission():
-    predictions_df.to_csv(f"submissions/submission-{lowest_val_loss}.csv", index=False)
+    predictions_df.to_csv(f"submissions/submission_speedval-{lowest_val_loss}.csv", index=False)
     
 test_set = build_test_set()
 predictions_df = make_predictions()
@@ -300,7 +316,7 @@ while float(lowest_val_loss) > 0.005:
     lowest_val_loss = str(round(min(history.history['val_loss']), 5))
     print(f"Lowest validation loss: {lowest_val_loss}")
     plot_training_curve(epoch_offset=5)
-    if float(lowest_val_loss) < 0.02:
+    if float(lowest_val_loss) < 0.03:
         test_set = build_test_set()
         predictions_df = make_predictions()
         create_submission()
