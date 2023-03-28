@@ -1,4 +1,3 @@
-#%%
 import sys
 import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -13,6 +12,8 @@ from tensorflow.keras import layers, Input
 from tensorflow.keras.optimizers import Adam
 import tensorflow.keras.backend as K
 import matplotlib.pyplot as plt
+from PIL import Image
+from PIL import UnidentifiedImageError
 
 def initialise_session():
     K.clear_session()
@@ -22,6 +23,51 @@ def initialise_session():
     if num_physical_devices > 0:
         tf.config.set_visible_devices(physical_devices[0], 'GPU')
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
+            
+def build_train_image_paths(path_to_data):
+    def absolute_file_paths(directory):
+        for dirpath, _, filenames in os.walk(directory):
+            for filename in sorted(filenames, key=lambda x: int(x.split('.')[0])):
+                yield os.path.abspath(os.path.join(dirpath, filename))
+    train_image_paths = []
+    for file_path in absolute_file_paths(path_to_data/'training_data/combined'):
+        train_image_paths.append(file_path)
+    path_indexes_to_remove = []
+    for i, image_path in enumerate(train_image_paths):
+        try:
+            Image.open(image_path)
+        except UnidentifiedImageError:
+            path_indexes_to_remove.append(i)
+    for index in sorted(path_indexes_to_remove, reverse=True):
+        train_image_paths.pop(index)
+        
+    train_image_paths_and_labels = pd.DataFrame()
+    train_image_paths_and_labels['image_path'] = train_image_paths
+
+    training_norm = pd.read_csv(path_to_data/'training_norm.csv')
+    for image_path in train_image_paths:
+        image_id = int((image_path.split('.')[0]).split('/')[-1])
+        angle = training_norm.loc[training_norm['image_id'] == image_id,
+                                'angle'].iloc[0]
+        speed = int((training_norm.loc[training_norm['image_id'] == image_id,
+                                    'speed'].iloc)[0])
+        train_image_paths_and_labels.loc[train_image_paths_and_labels['image_path'] == image_path, 'angle'] = angle
+        train_image_paths_and_labels.loc[train_image_paths_and_labels['image_path'] == image_path, 'speed'] = speed
+    return train_image_paths_and_labels
+
+def build_test_image_paths(path_to_data):
+    image_ids = np.arange(1, 1021)
+    test_image_paths = pd.DataFrame({'image_path': []})
+    for image_id in image_ids:
+        full_path = str(path_to_data/'test_data/test_data'/f"{str(image_id)}.png")
+        test_image_paths.loc[len(test_image_paths)] = full_path
+    return test_image_paths
+        
+def build_image_paths():
+    path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
+    train_image_paths_and_labels = build_train_image_paths(path_to_data)
+    test_image_paths = build_test_image_paths(path_to_data)
+    return train_image_paths_and_labels, test_image_paths
 
 def load_files_and_paths():
     if 'google.colab' in sys.modules:
@@ -31,10 +77,8 @@ def load_files_and_paths():
         train_image_paths = pd.read_csv(str(path_to_data/'training_norm_paths_googledrive.csv'))
         test_image_paths = pd.read_csv(str(path_to_data/'test_image_paths_googledrive.csv'))
     else:
-        path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
-        train_image_paths = pd.read_csv(str(path_to_data/'training_norm_paths.csv'))
-        test_image_paths = pd.read_csv(str(path_to_data/'test_image_paths.csv'))
-    return path_to_data, train_image_paths, test_image_paths
+        train_image_paths, test_image_paths = build_image_paths()
+    return train_image_paths, test_image_paths
     
 def f1_score(y_true, y_pred):
     """
@@ -63,7 +107,7 @@ def f1_score(y_true, y_pred):
     f1_score = 2 * ((precision * recall) / (precision + recall + K.epsilon()))
     return f1_score
 
-def load_training_images_and_labels(image_path, speed_label, angle_label):
+def load_training_images_and_labels(image_path, speed_label, angle_label, image_shape):
     # Define a function that maps each row to an image and a pair of labels
     image = tf.io.read_file(image_path)
     image = tf.image.decode_png(image, channels=3)
@@ -79,11 +123,11 @@ def augment(image_label, seed):
         image, max_delta=0.5, seed=new_seed)
     return image, label
 
-def build_training_and_validation_sets():
+def build_training_and_validation_sets(train_image_paths, image_shape, batch_size, train_val_split):
     dataset = tf.data.Dataset.from_tensor_slices((train_image_paths['image_path'],
                                                   train_image_paths['speed'],
                                                   train_image_paths['angle']))
-    dataset = dataset.map(load_training_images_and_labels).batch(batch_size)
+    dataset = dataset.map(lambda x,y,z: load_training_images_and_labels(x,y,z, image_shape)).batch(batch_size)
     num_batches = dataset.cardinality().numpy()
     dataset = dataset.shuffle(buffer_size=num_batches*batch_size)
 
@@ -113,27 +157,27 @@ class CNNs(keras.Model):
             layers.Conv2D(32, 3,
                           padding="valid",
                           activation="relu",
-                          kernel_regularizer=keras.regularizers.l2(0.001)
+                          kernel_regularizer=keras.regularizers.l2(0.01)
                           ),
-            layers.Dropout(0.5),
+            #layers.Dropout(0.5),
             layers.MaxPooling2D(),
             layers.Conv2D(64, 3,
                           activation="relu",
-                          kernel_regularizer=keras.regularizers.l2(0.001)
+                          kernel_regularizer=keras.regularizers.l2(0.01)
                           ),
-            layers.Dropout(0.5),
+            #layers.Dropout(0.5),
             layers.MaxPooling2D(),
             layers.Conv2D(128, 3,
                           activation="relu",
-                          kernel_regularizer=keras.regularizers.l2(0.005)
+                          kernel_regularizer=keras.regularizers.l2(0.01)
                           ),
-            layers.Dropout(0.5),
+            #layers.Dropout(0.5),
             layers.Flatten(),
             layers.Dense(64,
                          activation="relu",
-                         kernel_regularizer=keras.regularizers.l2(0.01)
+                         kernel_regularizer=keras.regularizers.l2(0.075)
                          ),
-            layers.Dropout(0.5),
+            #layers.Dropout(0.5),
             layers.Dense(10)
         ], name='CNN_speed')
         
@@ -162,7 +206,7 @@ class CNNs(keras.Model):
         return [speed_output, angle_output]
 
 
-def build_model():
+def build_model(image_shape):
     inputs = keras.layers.Input(shape=image_shape+(3,))
     [speed_output, angle_output] = CNNs(image_shape)(inputs)
 
@@ -174,7 +218,7 @@ def build_model():
     model.summary()
     return model
 
-def train_model():
+def train_model(model, train_set, val_set, epochs, logging):
     model.compile(
         optimizer = keras.mixed_precision.LossScaleOptimizer(Adam()),
         loss={
@@ -204,29 +248,12 @@ def train_model():
         tf.profiler.experimental.stop()
         # to view log execute: "tensorboard --logdir=logs/fit/"
     return model, history
-#%%
-# --- HYPERPARAMETERS ---
-batch_size = 40
-epochs = 100
-train_val_split = 0.8
-image_shape = (32, 32) # (32, 32) works well
-logging = False # log using tensorboard
-# -----------------------
 
-initialise_session()
-path_to_data, train_image_paths, test_image_paths = load_files_and_paths()
-train_set, val_set = build_training_and_validation_sets()
-model = build_model()
-model, history = train_model()
-
-lowest_val_loss = str(round(min(history.history['speed_loss']), 5))
-print(f"Lowest speed loss: {lowest_val_loss}")
-
-lowest_val_loss = str(round(min(history.history['val_speed_loss']), 5))
-print(f"Lowest validation speed loss: {lowest_val_loss}")
-#%%
-# Plot training curve
-def plot_training_curve(epoch_offset):
+def plot_training_curve(history, epochs, epoch_offset):
+    lowest_speed_loss = str(round(min(history.history['speed_loss']), 5))
+    print(f"Lowest speed loss: {lowest_speed_loss}")
+    lowest_val_speed_loss = str(round(min(history.history['val_speed_loss']), 5))
+    print(f"Lowest validation speed loss: {lowest_val_speed_loss}")
     loss = history.history['speed_loss']
     val_loss = history.history['val_speed_loss']
     epochs_range = range(epochs)
@@ -236,21 +263,18 @@ def plot_training_curve(epoch_offset):
     plt.legend(loc='upper right')
     plt.title('Training and Validation Speed Loss')
     plt.show()
+    return lowest_val_speed_loss
     
-plot_training_curve(epoch_offset=5)
-#%%
-# --- TESTING ---
-# Load the testing data in the exact same way as the training data
-def load_testing_images(image_path):
+def load_testing_images(image_path, image_shape):
     image = tf.io.read_file(image_path)
     image = tf.image.decode_png(image, channels=3)
     image = tf.image.resize(image, image_shape)
     image = tf.expand_dims(image, axis=0)
     return image
 
-def build_test_set():
+def build_test_set(test_image_paths, image_shape):
     test_set = tf.data.Dataset.from_tensor_slices(test_image_paths['image_path'])
-    test_set = test_set.map(load_testing_images)
+    test_set = test_set.map(lambda x: load_testing_images(x, image_shape))
     return test_set
 
 def threshold_predictions(predictions_df):
@@ -264,7 +288,7 @@ def threshold_predictions(predictions_df):
     predictions_df['angle'] = predictions_df['angle'].apply(closest_angle_round)
     return predictions_df
 
-def make_predictions():
+def make_predictions(model, test_set):
     predictions = model.predict(test_set)
 
     speed_predictions = predictions[0]
@@ -278,49 +302,70 @@ def make_predictions():
     predictions_df = threshold_predictions(predictions_df)
     return predictions_df
     
-def create_submission():
-    predictions_df.to_csv(f"submissions/submission_speedval-{lowest_val_loss}.csv", index=False)
+def create_submission(predictions_df, name):
+    predictions_df.to_csv(f"submissions/submission_speedval-{name}.csv", index=False)
     
-test_set = build_test_set()
-predictions_df = make_predictions()
-create_submission()
-#%%
-# --- SAVE MODEL ---
-def save_tf_model():
-    path_to_models = Path(__file__).parent/'models'
-    tf_save_path = str(path_to_models/f"tf/{lowest_val_loss}/")
+def save_tf_model(model, name, path_to_models):
+    tf_save_path = str(path_to_models/f"tf/{name}/")
     tf.saved_model.save(model, tf_save_path)
-    return path_to_models, tf_save_path
+    return tf_save_path
 
-def save_tflite_model():
+def save_tflite_model(model, name, path_to_models, tf_save_path):
     # Convert the model to tflite
     tflite_model = tf.lite.TFLiteConverter.from_saved_model(tf_save_path).convert()
 
-    tflite_save_path = path_to_models/f"tflite/{lowest_val_loss}"
+    tflite_save_path = path_to_models/f"tflite/{name}"
     os.mkdir(tflite_save_path)
     with open(tflite_save_path/'model.tflite', 'wb') as f:
         f.write(tflite_model)
+        
+def test_model(model, test_image_paths, image_shape, name):
+    test_decision = None
+    print('Make submission? (y/n)')
+    while test_decision != 'y' and test_decision != 'n':
+        test_decision = input('>>> ')
+        if test_decision == 'y':
+            test_set = build_test_set(test_image_paths, image_shape)
+            predictions_df = make_predictions(model, test_set)
+            create_submission(predictions_df, name)
+        elif test_decision == 'n':
+            break
+        else:
+            print("Invalid. Enter 'y' or 'n'")
 
-path_to_models, tf_save_path = save_tf_model()
-save_tflite_model()
-#%%
-# TRAINING LOOP
-import time
-lowest_val_loss = 1
-while float(lowest_val_loss) > 0.005:
+def save_model(model, name):
+    save_decision = None
+    print('Save model? (y/n)')
+    while save_decision != 'y' and save_decision != 'n':
+        save_decision = input('>>> ')
+        if save_decision == 'y':
+            path_to_models = Path(__file__).parent/'models'
+            tf_save_path = save_tf_model(model, name, path_to_models)
+            save_tflite_model(model, name, path_to_models, tf_save_path)
+        elif save_decision == 'n':
+            break
+        else:
+            print("Invalid. Enter 'y' or 'n'")
+
+def main():
+    # --- HYPERPARAMETERS ---
+    batch_size = 40
+    epochs = 1
+    train_val_split = 0.8
+    image_shape = (32, 32) # (32, 32) works well
+    logging = False # log using tensorboard
+    # -----------------------
     initialise_session()
-    path_to_data, train_image_paths, test_image_paths = load_files_and_paths()
-    train_set, val_set = build_training_and_validation_sets()
-    model = build_model()
-    model, history = train_model()
-    lowest_val_loss = str(round(min(history.history['val_loss']), 5))
-    print(f"Lowest validation loss: {lowest_val_loss}")
-    plot_training_curve(epoch_offset=5)
-    if float(lowest_val_loss) < 0.03:
-        test_set = build_test_set()
-        predictions_df = make_predictions()
-        create_submission()
-        path_to_models, tf_save_path = save_tf_model()
-        save_tflite_model()
-    time.sleep(10)
-#%%
+    train_image_paths, test_image_paths = load_files_and_paths()
+    train_set, val_set = build_training_and_validation_sets(train_image_paths,
+                                                            image_shape,
+                                                            batch_size,
+                                                            train_val_split)
+    model = build_model(image_shape)
+    model, history = train_model(model, train_set, val_set, epochs, logging)
+    name = plot_training_curve(history, epochs, epoch_offset=25)
+    test_model(model, test_image_paths, image_shape, name)
+    save_model(model, name)
+    
+if __name__ == '__main__':
+    main()
