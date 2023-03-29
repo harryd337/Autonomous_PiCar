@@ -26,5 +26,5 @@ conda install pandas
 conda install pillow
 conda install ipython
 conda install jupyter
-conda install cchardet
+conda install -c conda-forge cchardet
 conda install chardet
