@@ -237,7 +237,7 @@ def build_model(image_shape):
 
 def train_model(model, train_set, val_set, epochs, logging):
     model.compile(
-        optimizer = keras.mixed_precision.LossScaleOptimizer(Adam()),
+        optimizer = Adam(),
         loss={
             'speed': keras.losses.BinaryCrossentropy(from_logits=True),
             'angle': keras.losses.MeanSquaredError()
