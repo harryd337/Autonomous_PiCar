@@ -23,14 +23,31 @@ def initialise_session():
     if num_physical_devices > 0:
         tf.config.set_visible_devices(physical_devices[0], 'GPU')
         tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        
+def find_directory():
+    try:
+        # Check if running in a Jupyter notebook
+        shell = get_ipython().__class__.__name__
+        if shell == 'ZMQInteractiveShell':
+            # Running in a Jupyter notebook
+            directory = os.getcwd()
+        else:
+            # Running in a standalone Python script
+            directory = Path(__file__).parent
+    except NameError:
+        # Running in a standalone Python script
+        directory = Path(__file__).parent
+    return directory
             
 def build_train_image_paths(path_to_data):
     def absolute_file_paths(directory):
         for dirpath, _, filenames in os.walk(directory):
-            for filename in sorted(filenames, key=lambda x: int(x.split('.')[0])):
+            for filename in sorted(filenames, key=lambda x: int(x.split('.')[0]) if x.split('.')[0].isdigit() else float('inf')):
+                if not filename.split('.')[0].isdigit():
+                    continue
                 yield os.path.abspath(os.path.join(dirpath, filename))
     train_image_paths = []
-    for file_path in absolute_file_paths(path_to_data/'training_data/combined'):
+    for file_path in absolute_file_paths(f"{path_to_data}/training_data/combined"):
         train_image_paths.append(file_path)
     path_indexes_to_remove = []
     for i, image_path in enumerate(train_image_paths):
@@ -44,7 +61,7 @@ def build_train_image_paths(path_to_data):
     train_image_paths_and_labels = pd.DataFrame()
     train_image_paths_and_labels['image_path'] = train_image_paths
 
-    training_norm = pd.read_csv(path_to_data/'training_norm.csv')
+    training_norm = pd.read_csv(f"{path_to_data}/training_norm.csv")
     for image_path in train_image_paths:
         image_id = int((image_path.split('.')[0]).split('/')[-1])
         angle = training_norm.loc[training_norm['image_id'] == image_id,
@@ -59,17 +76,17 @@ def build_test_image_paths(path_to_data):
     image_ids = np.arange(1, 1021)
     test_image_paths = pd.DataFrame({'image_path': []})
     for image_id in image_ids:
-        full_path = str(path_to_data/'test_data/test_data'/f"{str(image_id)}.png")
+        full_path = str(f"{path_to_data}/test_data/test_data/{str(image_id)}.png")
         test_image_paths.loc[len(test_image_paths)] = full_path
     return test_image_paths
         
-def build_image_paths():
-    path_to_data = Path(__file__).parent / f"./machine-learning-in-science-ii-2023"
+def build_image_paths(directory):
+    path_to_data = f"{directory}/machine-learning-in-science-ii-2023"
     train_image_paths_and_labels = build_train_image_paths(path_to_data)
     test_image_paths = build_test_image_paths(path_to_data)
     return train_image_paths_and_labels, test_image_paths
 
-def load_files_and_paths():
+def load_files_and_paths(directory):
     if 'google.colab' in sys.modules:
         from google.colab import drive
         drive.mount('/content/drive')
@@ -77,7 +94,7 @@ def load_files_and_paths():
         train_image_paths = pd.read_csv(str(path_to_data/'training_norm_paths_googledrive.csv'))
         test_image_paths = pd.read_csv(str(path_to_data/'test_image_paths_googledrive.csv'))
     else:
-        train_image_paths, test_image_paths = build_image_paths()
+        train_image_paths, test_image_paths = build_image_paths(directory)
     return train_image_paths, test_image_paths
     
 def f1_score(y_true, y_pred):
@@ -302,24 +319,29 @@ def make_predictions(model, test_set):
     predictions_df = threshold_predictions(predictions_df)
     return predictions_df
     
-def create_submission(predictions_df, name):
-    predictions_df.to_csv(f"submissions/submission_speedval-{name}.csv", index=False)
+def create_submission(predictions_df, name, directory):
+    submission_directory = f"{directory}/submissions"
+    if not os.path.exists(submission_directory):
+        os.makedirs(submission_directory)
+    predictions_df.to_csv(f"{submission_directory}/submission_speedval-{name}.csv", index=False)
     
 def save_tf_model(model, name, path_to_models):
-    tf_save_path = str(path_to_models/f"tf/{name}/")
-    tf.saved_model.save(model, tf_save_path)
-    return tf_save_path
+    tf_model_save_path = f"{path_to_models}/tf/{name}/"
+    tf.saved_model.save(model, tf_model_save_path)
+    return tf_model_save_path
 
-def save_tflite_model(model, name, path_to_models, tf_save_path):
+def save_tflite_model(model, name, path_to_models, tf_model_save_path):
     # Convert the model to tflite
-    tflite_model = tf.lite.TFLiteConverter.from_saved_model(tf_save_path).convert()
-
-    tflite_save_path = path_to_models/f"tflite/{name}"
-    os.mkdir(tflite_save_path)
-    with open(tflite_save_path/'model.tflite', 'wb') as f:
+    tflite_model = tf.lite.TFLiteConverter.from_saved_model(tf_model_save_path).convert()
+    tflite_save_path = f"{path_to_models}/tflite"
+    if not os.path.exists(tflite_save_path):
+        os.makedirs(tflite_save_path)
+    tflite_model_save_path = f"{tflite_save_path}/{name}"
+    os.mkdir(tflite_model_save_path)
+    with open(f"{tflite_model_save_path}/model.tflite", 'wb') as f:
         f.write(tflite_model)
         
-def test_model(model, test_image_paths, image_shape, name):
+def test_model(model, test_image_paths, image_shape, name, directory):
     test_decision = None
     print('Make submission? (y/n)')
     while test_decision != 'y' and test_decision != 'n':
@@ -327,21 +349,23 @@ def test_model(model, test_image_paths, image_shape, name):
         if test_decision == 'y':
             test_set = build_test_set(test_image_paths, image_shape)
             predictions_df = make_predictions(model, test_set)
-            create_submission(predictions_df, name)
+            create_submission(predictions_df, name, directory)
         elif test_decision == 'n':
             break
         else:
             print("Invalid. Enter 'y' or 'n'")
 
-def save_model(model, name):
+def save_model(model, name, directory):
     save_decision = None
     print('Save model? (y/n)')
     while save_decision != 'y' and save_decision != 'n':
         save_decision = input('>>> ')
         if save_decision == 'y':
-            path_to_models = Path(__file__).parent/'models'
-            tf_save_path = save_tf_model(model, name, path_to_models)
-            save_tflite_model(model, name, path_to_models, tf_save_path)
+            path_to_models = f"{directory}/models"
+            if not os.path.exists(path_to_models):
+                os.makedirs(path_to_models)
+            tf_model_save_path = save_tf_model(model, name, path_to_models)
+            save_tflite_model(model, name, path_to_models, tf_model_save_path)
         elif save_decision == 'n':
             break
         else:
@@ -356,16 +380,17 @@ def main():
     logging = False # log using tensorboard
     # -----------------------
     initialise_session()
-    train_image_paths, test_image_paths = load_files_and_paths()
+    directory = find_directory()
+    train_image_paths, test_image_paths = load_files_and_paths(directory)
     train_set, val_set = build_training_and_validation_sets(train_image_paths,
                                                             image_shape,
                                                             batch_size,
                                                             train_val_split)
     model = build_model(image_shape)
     model, history = train_model(model, train_set, val_set, epochs, logging)
-    name = plot_training_curve(history, epochs, epoch_offset=25)
-    test_model(model, test_image_paths, image_shape, name)
-    save_model(model, name)
+    name = plot_training_curve(history, epochs, epoch_offset=0)
+    test_model(model, test_image_paths, image_shape, name, directory)
+    save_model(model, name, directory)
     
 if __name__ == '__main__':
     main()
