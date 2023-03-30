@@ -29,4 +29,4 @@ conda install jupyter
 conda install -c conda-forge cchardet
 conda install chardet
 conda install scipy
-conda install -c anaconda scikit-learn
+conda install scikit-learn
