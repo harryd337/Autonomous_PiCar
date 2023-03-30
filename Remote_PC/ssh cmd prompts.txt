@@ -1,6 +1,8 @@
-[In first command line prompt]:
-scp "C:/Users/ppyhd1/OneDrive/Backup/Main/Documents/My_Documents/PC/Remote_PC/multi-output_nb.ipynb" ppyhd1@mlis2.nottingham.ac.uk:~/DeepDreams
+[To upload a folder]:
+scp -r "C:/Users/ppyhd1/OneDrive/Backup/DeepDreams" ppyhd1@mlis1.nottingham.ac.uk:~
 
+[In first command line prompt]:
+ssh ppyhd1@mlis1.nottingham.ac.uk
 ssh ppyhd1@mlis2.nottingham.ac.uk
 
 cd DeepDreams
@@ -11,4 +13,5 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/:$CUDNN_PATH/lib
 jupyter notebook --no-browser --port=8080
 
 [In second command line prompt]:
-ssh -N -L 8080:localhost:8080 ppyhd1@mlis2.nottingham.ac.uk
+ssh -N -L 8080:localhost:8080 ppyhd1@mlis1.nottingham.ac.uk
+ssh -N -L 9090:localhost:9090 ppyhd1@mlis2.nottingham.ac.uk
