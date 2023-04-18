@@ -4,18 +4,23 @@ scp -r "C:/Users/harry/My Drive/Masters/MLiS_Pt2/Project/autopilot/Deep_Dreamers
 ssh pi@192.168.50.1
 
 [Run model on car]
-cd autopilot
+cd ~/autopilot
 python3 run.py --model Deep_Dreamers --mode drive --duration 120
+
+[Delete model off car]
+cd ~/autopilot/autopilot/models
+chmod -R u+w ~
+rm -r Deep_Dreamers
 
 [If camera doesn't work]
 ps aux | grep runserver
 kill [process]
 
-[Move to image directory on car]
-cd SunFounder_PiCar-V/remote_control/capture
-
 [Download images off car onto PC]]
 scp -r pi@192.168.50.1:~/SunFounder_PiCar-V/remote_control/capture "C:/Users/harry/OneDrive/Backup/Main/Documents/My_Documents/PC/PiCar_Project/New data"
+
+[Move to image directory on car]
+cd ~/SunFounder_PiCar-V/remote_control/capture
 
 [Delete all images in directory]
 rm -rf ./*
