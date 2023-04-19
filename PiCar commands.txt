@@ -1,5 +1,7 @@
 [Install our model on the car]
 scp -r "C:/Users/harry/My Drive/Masters/MLiS_Pt2/Project/autopilot/Deep_Dreamers" pi@192.168.50.1:~/autopilot/autopilot/models
+scp -r /Users/henrywillett/Downloads/Deep_Dreamers pi@192.168.50.1:~/autopilot/autopilot/models
+
 
 ssh pi@192.168.50.1
 
