@@ -20,6 +20,7 @@ kill [process]
 
 [Download images off car onto PC]]
 scp -r pi@192.168.50.1:~/SunFounder_PiCar-V/remote_control/capture "C:/Users/harry/OneDrive/Backup/Main/Documents/My_Documents/PC/PiCar_Project/New data"
+scp -r pi@192.168.50.1:~/SunFounder_PiCar-V/remote_control/capture /Users/henrywillett/Downloads/pi_images
 
 [Move to image directory on car]
 cd ~/SunFounder_PiCar-V/remote_control/capture
