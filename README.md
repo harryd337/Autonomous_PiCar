@@ -4,6 +4,8 @@
 
 In this project, a deep convolutional neural network partnered with supervised learning techniques is used to train a small robot car to autonomously navigate various tracks using image data from its onboard camera. The model is designed and then trained to predict two labels for each image; the speed and the angle the car should immediately employ. Steps are taken to improve model performance and efficiency, and a final version is tested in two phases; a Kaggle competition involving a hidden test set; and live testing involving the implementation of the model on the car and observing its driving proficiency around three tracks. The final model generally performs well at predicting the speed but struggles with predicting the angle in some complex scenarios. However, the model is extremely efficient and can handle driving at significantly increased speeds.
 
+The notebook "multi-output_nb.ipynb" contains the code used to build, train and save the model to a tflite file. The folder "PiCar" contains the files uploaded to the computer on the car. These are "model.py" and the tflite file. "model.py" loads and runs the model and interfaces with the preinstalled software on the car. First, the latest image from the camera is obtained. This is then fed to the model so it can make predictions for how the car should behave. The outputs from the model are then passed to the software on the car responsible for driving its motors. This process then immediately repeats.
+
 ## Image Data
 
 The images come from the onboard camera of a small electric robot car[4]. The car also has an onboard Raspberry Pi (RPi) 4[5] that is used to run the model and make predictions on the image data in real-time.
