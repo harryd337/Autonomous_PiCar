@@ -1,16 +1,46 @@
 # Training an Autonomous Robot Car
 
-Contents page...
+## Table of Contents
+- [Overview](#overview)
+- [Background](#background)
+- [Image Data](#image-data)
+- [Objectives](#objectives)
+- [Model](#model)
+    - [Architecture](#architecture)
+    - [Construction](#construction)
+    - [Implementation](#implementation)
+- [Preprocessing](#preprocessing)
+- [Training and Optimization](#training-and-optimization)
+    - [Loss Functions](#loss-functions)
+    - [Learning Rate](#learning-rate)
+    - [Validation](#validation)
+    - [Regularization](#regularization)
+    - [Class Weighting](#class-weighting)
+    - [Custom Metrics](#custom-metrics)
+    - [Evaluation](#evaluation)
+- [Results](#results)
+    - [Evaluation Metrics](#evaluation-metrics)
+    - [Kaggle Competition](#kaggle-competition)
+    - [Live Testing](#live-testing)
+- [Discussion](#discussion)
+- [Conclusions](#conclusions)
+- [References](#references)
 
 ## Overview
 
-In this project, a deep convolutional neural network partnered with supervised learning techniques is used to train a small robot car to autonomously navigate various tracks using image data from its onboard camera.
+In this project, a deep multi-task convolutional neural network (CNN) partnered with supervised learning techniques is used to train a small robot car to autonomously navigate various tracks using image data from its onboard camera.
 
 The model is designed and then trained to predict two labels for each image; the speed and the angle the car should immediately employ. Steps are taken to improve model performance and efficiency, and a final version is tested in two phases; a Kaggle competition involving a hidden test set; and live testing involving the implementation of the model on the car and observing its driving proficiency around three tracks. The final model generally performs well at predicting the speed but struggles with predicting the angle in some complex scenarios. However, the model is extremely efficient and can handle driving at significantly increased speeds.
 
 The Jupyter notebook "multi-output_nb.ipynb" contains the code used to build, train and save the model to a TFLite file. The folder "PiCar" contains the files uploaded to the cars onboard computer. These files include "model.py" and the aforementioned TFLite file. "model.py" loads and runs the model and interfaces with the pre-installed software on the car. First, the latest image from the camera is loaded. This is then fed to the model so it can make predictions to determine the cars actions. The outputs from the model are then passed to the software on the car responsible for driving its motors. This sequence of operations is then immediately repeated, creating a continuous cycle of input, prediction, and action.
 
 The following sections provide detailed explanations of the most important elements of the project, including details of the task; development of the model; and the final results. There is also a discussion of the results and a conclusion.
+
+## Background
+
+Supervised learning is a branch of machine learning defined by its use of labelled data to train models[1]. It involves devising an algorithm allowing a model to learn to predict the correct label for a given sample from the training dataset. The aim is for the trained model to be able to make accurate predictions of labels for unseen data.
+
+CNNs are a type of artificial neural network architecture often used in conjunction with supervised learning. These model designs are defined by their use of convolutional layers that can learn to pick out important spatial features from their inputs by effectively filtering over them[2]. Another critical component of a CNN is the pooling layer, which is typically used immediately after one or more convolutional layers and their activations. Pooling is used to reduce the spatial size of the representation[3]. This is important for allowing the model to learn features at higher levels of abstraction, aiding generality and reducing computational load. Due to their ability to learn complex relationships in high dimensional inputs, CNNs are very well suited for handling image data.
 
 ## Image Data
 
@@ -54,7 +84,7 @@ Additionally, a test is used to evaluate the models ability to stop the car when
 
 The model must predict two labels; speed and angle. These can be thought of as binary classification and linear regression problems, respectively. The nature of these prediction tasks is clearly very different; the speed prediction is effectively an object detection problem, whereas the angle prediction is simply predicting steering angle. Due to their differences, the predictions for each label are best represented by different loss functions.
 
-The model is therefore designed as a multi-output CNN with two branches resulting in two outputs. The output of one branch is the speed label prediction, with the loss computed as the binary cross-entropy, and the output of the second branch is the angle label prediction, with the loss computed as the MSE.
+The model is therefore designed as a multi-task CNN with two branches resulting in two outputs. The output of one branch is the speed label prediction, with the loss computed as the binary cross-entropy, and the output of the second branch is the angle label prediction, with the loss computed as the MSE.
 
 Figure 2...
 
