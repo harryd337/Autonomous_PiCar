@@ -106,15 +106,13 @@ Since the raw images taken from the camera are 320x240 and the model requires in
 
 Each image in the training dataset is then attempted to be displayed using the Image module from the Pillow library[11]. If the image cannot be displayed then it is likely corrupted, and is removed from the training set.
 
-Next, image augmentation is applied. This is where alterations and/or distortions are made to an image to give the model an artificially more diverse set of training data to learn from, to combat overfitting. Multiple augmentation techniques are experimented with, including random flip, random rotation, random brightness, random contrast and random saturation. These augmentations are applied in turn and in combination to training images over multiple initial training runs, where their approximate effect on performance may be observed. Random brightness is kept as the augmentation applied in the final model.
+Next, image augmentation is applied. This is where alterations and/or distortions are made to an image to give the model an artificially more diverse set of training data to learn from, to combat overfitting. Multiple augmentation techniques are experimented with, including random flip, random rotation, random brightness, random contrast and random saturation (see "augmentations.ipynb" for examples of these augmentations applied to an image from the training dataset). These augmentations are applied in turn and in combination to training images over multiple initial training runs, where their approximate effect on performance may be observed. Random brightness is kept as the augmentation applied in the final model.
 
 ## Training and Optimization
 
 ### Loss Functions
 
 During training, after all the forward passes of a batch, the loss is backpropagated through the weights of the network. The binary cross entropy loss is used to update the weights of the parameters of the speed branch of the model. The MSE loss is then used equivalently for the angle branch. The approximated gradients of the loss with respect to each weight is used by the Adam optimiser[12] to determine by what degree each weight is updated.
-
-Loss function equations...
 
 ### Learning Rate
 
@@ -144,15 +142,15 @@ To encourage learning and to correct for the imbalanced data, class weighting is
 
 To better observe the models performance with respect to the speed prediction task, custom metrics are defined and tracked throughout training. These include the specificity, Negative Predictive Value (NPV) and F1-negative. These metrics focus on measuring the models effectiveness at predicting the negative class (speed=0). This is because the negative class is the minority class and its samples contain the object the model should learn to detect. Specificity is a metric used to measure the proportion of actual negatives that are correctly identified[16], and is defined as,
 
-Specificity equation...
+$\rm Specificity = \frac{TN}{TN + FP}$,
 
 where TN is the number of true negatives and FP is the number of false positives. NPV is the proportion of predicted negatives that are actual negatives, and is defined as,
 
-NPV equation...
+$\rm NPV = \frac{TN}{TN + FN}$,
 
-where TN is the number of true negatives and FP is the number of false positives. NPV is the proportion of predicted negatives that are actual negatives, and is defined as,
+where FN is the number of false negatives. F1-negative is the equivalent of the standard F1 score[17] but for the negative class. This combines the specificity and NPV into a single metric that can be used as a general indicator of predictive performance of the negative class. It is defined as,
 
-F1 equation...
+$\rm F1_{negative} = \frac{NPV * Specificity}{NPV + Specificity}$.
 
 ### Evaluation
 
