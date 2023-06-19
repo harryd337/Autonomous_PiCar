@@ -32,19 +32,17 @@ In this project, a deep multi-task convolutional neural network (CNN) partnered 
 
 The model is designed and then trained to predict two labels for each image; the speed and the angle the car should immediately employ. Steps are taken to improve model performance and efficiency, and a final version is tested in two phases; a Kaggle competition involving a hidden test set; and live testing involving the implementation of the model on the car and observing its driving proficiency around three tracks. The final model generally performs well at predicting the speed but struggles with predicting the angle in some complex scenarios. However, the model is extremely efficient and can handle driving at significantly increased speeds.
 
-The Jupyter notebook "multi-output_nb.ipynb" contains the code used to build, train and save the model to a TFLite file. The folder "PiCar" contains the files uploaded to the cars onboard computer. These files include "model.py" and the aforementioned TFLite file. "model.py" loads and runs the model and interfaces with the pre-installed software on the car. First, the latest image from the camera is loaded. This is then fed to the model so it can make predictions to determine the cars actions. The outputs from the model are then passed to the software on the car responsible for driving its motors. This sequence of operations is then immediately repeated, creating a continuous cycle of input, prediction, and action.
-
 The following sections provide detailed explanations of the most important elements of the project, including details of the task; development of the model; and the final results. There is also a discussion of the results and a conclusion.
 
 ## Background
 
-Supervised learning is a branch of machine learning defined by its use of labelled data to train models[1]. It involves devising an algorithm allowing a model to learn to predict the correct label for a given sample from the training dataset. The aim is for the trained model to be able to make accurate predictions of labels for unseen data.
+Supervised learning is a branch of machine learning defined by its use of labelled data to train models [1]. It involves devising an algorithm allowing a model to learn to predict the correct label for a given sample from the training dataset. The aim is for the trained model to be able to make accurate predictions of labels for unseen data.
 
-CNNs are a type of artificial neural network architecture often used in conjunction with supervised learning. These model designs are defined by their use of convolutional layers that can learn to pick out important spatial features from their inputs by effectively filtering over them[2]. Another critical component of a CNN is the pooling layer, which is typically used immediately after one or more convolutional layers and their activations. Pooling is used to reduce the spatial size of the representation[3]. This is important for allowing the model to learn features at higher levels of abstraction, aiding generality and reducing computational load. Due to their ability to learn complex relationships in high dimensional inputs, CNNs are very well suited for handling image data.
+CNNs are a type of artificial neural network architecture often used in conjunction with supervised learning. These model designs are defined by their use of convolutional layers that can learn to pick out important spatial features from their inputs by effectively filtering over them [2]. Another critical component of a CNN is the pooling layer, which is typically used immediately after one or more convolutional layers and their activations. Pooling is used to reduce the spatial size of the representation [3]. This is important for allowing the model to learn features at higher levels of abstraction, aiding generality and reducing computational load. Due to their ability to learn complex relationships in high dimensional inputs, CNNs are very well suited for handling image data.
 
 ## Image Data
 
-The images used by the model come from the onboard camera of a small electric robot car[4]. The car also has an onboard Raspberry Pi (RPi) 4[5] that is used to run the model and make predictions on the image data in real-time.
+The images used by the model come from the onboard camera of a small electric robot car [4]. The car also has an onboard Raspberry Pi (RPi) 4 [5] that is used to run the model and make predictions on the image data in real-time.
 
 The speed label corresponds to the speed at which the car should drive, given the current image. There are two classes of speed label, 0 or 1, which correspond to the car stopping its wheels or driving them forwards at a constant rate. This means that predicting the speed label is a binary classification problem.
 
@@ -94,17 +92,21 @@ The model is illustrated above. Each branch has three convolutional layers invol
 
 ### Construction
 
-The model is constructed in Python[6], making use of the TensorFlow 2[7] machine learning library. The highlevel Keras API[8] is utilized for constructing the layers. The model is structured to be compatible with conversion to TensorFlow Lite[9], TensorFlow’s lightweight solution for mobile and embedded devices. Converting to TensorFlow Lite provides the benefit of low-latency inference when running the model on a TPU. To leverage this benefit, the car is fitted with a Coral Edge TPU[10] connected to the RPi.
+The model is constructed in Python [6], making use of the TensorFlow 2 [7] machine learning library. The high-level Keras API [8] is utilized for constructing the layers. The model is structured to be compatible with conversion to TensorFlow Lite [9], TensorFlow’s lightweight solution for mobile and embedded devices. Converting to TensorFlow Lite provides the benefit of low-latency inference when running the model on a TPU. To leverage this benefit, the car is fitted with a Coral Edge TPU [10] connected to the RPi.
+
+The Jupyter notebook "train_model.ipynb" contains the code used to build, train and save the model to a TFLite file.
 
 ### Implementation
 
-The trained model is converted to TensorFlow Lite and integrated into a script on the RPi that takes images from the camera and inputs them to the model. The model outputs the predictions which are then used to command the motors on the car, communicating which angle to steer and whether to drive or stop.
+The TFLite file containing the model is integrated into a script that runs on the RPi called "model.py". This script loads and runs the model and interfaces with the pre-installed software on the car. First, the latest image from the camera is loaded. This is then fed to the model so it can make predictions to determine the cars actions. The outputs from the model are then passed to the software on the car responsible for driving its motors. This sequence of operations is then immediately repeated, creating a continuous cycle of input, prediction, and action.
+
+The folder "PiCar" contains the aforementioned files that are uploaded to the car.
 
 ## Preprocessing
 
 Since the raw images taken from the camera are 320x240 and the model requires inputs of size 32x32, the images must initially be resized. This is achieved simply by using the resize method from the tensorflow.image module.
 
-Each image in the training dataset is then attempted to be displayed using the Image module from the Pillow library[11]. If the image cannot be displayed then it is likely corrupted, and is removed from the training set.
+Each image in the training dataset is then attempted to be displayed using the Image module from the Pillow library [11]. If the image cannot be displayed then it is likely corrupted, and is removed from the training set.
 
 Next, image augmentation is applied. This is where alterations and/or distortions are made to an image to give the model an artificially more diverse set of training data to learn from, to combat overfitting. Multiple augmentation techniques are experimented with, including random flip, random rotation, random brightness, random contrast and random saturation (see "augmentations.ipynb" for examples of these augmentations applied to an image from the training dataset). These augmentations are applied in turn and in combination to training images over multiple initial training runs, where their approximate effect on performance may be observed. Random brightness is kept as the augmentation applied in the final model.
 
@@ -112,7 +114,7 @@ Next, image augmentation is applied. This is where alterations and/or distortion
 
 ### Loss Functions
 
-During training, after all the forward passes of a batch, the loss is backpropagated through the weights of the network. The binary cross entropy loss is used to update the weights of the parameters of the speed branch of the model. The MSE loss is then used equivalently for the angle branch. The approximated gradients of the loss with respect to each weight is used by the Adam optimiser[12] to determine by what degree each weight is updated.
+During training, after all the forward passes of a batch, the loss is backpropagated through the weights of the network. The binary cross entropy loss is used to update the weights of the parameters of the speed branch of the model. The MSE loss is then used equivalently for the angle branch. The approximated gradients of the loss with respect to each weight is used by the Adam optimiser [12] to determine by what degree each weight is updated.
 
 ### Learning Rate
 
@@ -126,11 +128,11 @@ To assist the training process, the training data is divided into training and v
 
 To combat overfitting and to encourage the model to learn more general relationships, regularization techniques are employed and tuned.
 
-Specifically, L2 regularization is applied to each convolutional and fully connected layer. This adds a penalty proportional to the magnitude of each of the weights to the loss function, encouraging the model to minimise each weight[13]. The degree to which L2 regularization is applied for each layer is defined by a set of hyperparameters that must be tuned.
+Specifically, L2 regularization is applied to each convolutional and fully connected layer. This adds a penalty proportional to the magnitude of each of the weights to the loss function, encouraging the model to minimise each weight [13]. The degree to which L2 regularization is applied for each layer is defined by a set of hyperparameters that must be tuned.
 
-The second technique utilised is dropout. This is defined by a dropout rate that corresponds to the proportion of outputs from a layer that are randomly ignored[14]. Dropout is applied at a rate of 0.5 for all layers of the model.
+The second technique utilised is dropout. This is defined by a dropout rate that corresponds to the proportion of outputs from a layer that are randomly ignored [14]. Dropout is applied at a rate of 0.5 for all layers of the model.
 
-The hyperparameters of these regularization techniques are tuned through trial and error. First, a set of hyperparameters are selected and the model is trained. The training and validation loss for each epoch are plotted on a graph using the Matplotlib library[15], and the gap between curves is observed. The hyperparameters are then adjusted between trial runs in attempts to minimise this gap.
+The hyperparameters of these regularization techniques are tuned through trial and error. First, a set of hyperparameters are selected and the model is trained. The training and validation loss for each epoch are plotted on a graph using the Matplotlib library [15], and the gap between curves is observed. The hyperparameters are then adjusted between trial runs in attempts to minimise this gap.
 
 ### Class Weighting
 
@@ -140,7 +142,7 @@ To encourage learning and to correct for the imbalanced data, class weighting is
 
 ### Custom Metrics
 
-To better observe the models performance with respect to the speed prediction task, custom metrics are defined and tracked throughout training. These include the specificity, Negative Predictive Value (NPV) and F1-negative. These metrics focus on measuring the models effectiveness at predicting the negative class (speed=0). This is because the negative class is the minority class and its samples contain the object the model should learn to detect. Specificity is a metric used to measure the proportion of actual negatives that are correctly identified[16], and is defined as,
+To better observe the models performance with respect to the speed prediction task, custom metrics are defined and tracked throughout training. These include the specificity, Negative Predictive Value (NPV) and F1-negative. These metrics focus on measuring the models effectiveness at predicting the negative class (speed=0). This is because the negative class is the minority class and its samples contain the object the model should learn to detect. Specificity is a metric used to measure the proportion of actual negatives that are correctly identified [16], and is defined as,
 
 $\rm Specificity = \frac{TN}{TN + FP}$,
 
@@ -148,7 +150,7 @@ where TN is the number of true negatives and FP is the number of false positives
 
 $\rm NPV = \frac{TN}{TN + FN}$,
 
-where FN is the number of false negatives. F1-negative is the equivalent of the standard F1 score[17] but for the negative class. This combines the specificity and NPV into a single metric that can be used as a general indicator of predictive performance of the negative class. It is defined as,
+where FN is the number of false negatives. F1-negative is the equivalent of the standard F1 score [17] but for the negative class. This combines the specificity and NPV into a single metric that can be used as a general indicator of predictive performance of the negative class. It is defined as,
 
 $\rm F1_{negative} = \frac{NPV * Specificity}{NPV + Specificity}$.
 
@@ -180,7 +182,7 @@ Videos of live testing...
 
 ## Discussion
 
-An initial problem was deciding which model design to focus on. Initially, transfer learning was attempted using the MobileNetV2 pretrained network[18]. All parameters were frozen during training except for the output weights. Performance was okay using this method, but training time and computational load were greatly increased. Earlier layers could not be retrained due to GPU memory limitations. Using such a large model would also increase inference time, of which minimisation was a high priority.
+An initial problem was deciding which model design to focus on. Initially, transfer learning was attempted using the MobileNetV2 pretrained network [18]. All parameters were frozen during training except for the output weights. Performance was okay using this method, but training time and computational load were greatly increased. Earlier layers could not be retrained due to GPU memory limitations. Using such a large model would also increase inference time, of which minimisation was a high priority.
 
 The final model was settled on due to its lightweight design, minimal trainable parameters, small input dimensions and an ability for customization. A small model gives the benefit of faster inference time, especially when utilizing the TPU. This benefit was displayed by the cars exceptional performance when driving speed was increased to the maximum on the oval track and the model successfully kept up with the fast-changing environment. However, likely due to its simplicity, the model struggled on many of the most difficult tasks during live testing. The model clearly struggled with learning complex scenarios such as crossing the intersection and turning at the T-junction. A larger model with more layers handling larger inputs may be better suited for representing this complexity.
 
@@ -195,3 +197,39 @@ A key mistake was removing all traffic light data, as this was originally though
 In conclusion, the model was designed and trained well enough to achieve good results in both phases of testing. Except for with traffic lights, the model saw great success at the classification task, and could stop before colliding with obstacles. For the regression task, the model performed well on the curves of the tracks but failed at some of the more difficult tasks, such as crossing the intersection and turning at the T-junction. However, the model was extremely efficient with very low inference times, allowing the car to drive at increased speeds. It is theorised that performance could be improved by acquiring more data and redesigning the model to better handle the complexity of the most difficult tasks.
 
 ## References
+
+[1] C. M. Bishop and N. M. Nasrabadi, Pattern recognition and machine learning, J. Electronic Imaging 16, 049901 (2006).
+
+[2] S. Albawi, T. A. Mohammed, and S. Al-Zawi, Understanding of a convolutional neural network, in [2017 International Conference on Engineering and Technology (ICET)](https://doi.org/10.1109/ICEngTechnol.2017.8308186) (2017) pp. 1–6.
+
+[3] Qualcomm Technologies, Inc., [Deep learning and convolutional neural networks for computer vision](https://developer.qualcomm.com/software/qualcomm-neural-processing-sdk/learning-resources/cnn-architectures/deep-learning-convolutional-neural-networks-computer-vision) (2023), accessed: 28/05/2023.
+
+[4] SunFounder, [Sunfounder picar-v kit v2](https://www.sunfounder.com/products/smart-video-car) (2020), accessed: 02/06/2023.
+
+[5] Raspberrypi.org, [Raspberry pi 4](https://www.raspberrypi.org/products/raspberry-pi-4-model-b/) (2020), accessed: 02/06/2023.
+
+[6] Python Software Foundation, [Python language reference, version 3.9](https://docs.python.org/3.9/) (2020), available at python.org.
+
+[7] M. Abadi, A. Agarwal, P. Barham, E. Brevdo, Z. Chen, C. Citro, G. S. Corrado, A. Davis, J. Dean, M. Devin, S. Ghemawat, I. Goodfellow, A. Harp, G. Irving, M. Isard, Y. Jia, R. Jozefowicz, L. Kaiser, M. Kudlur, J. Levenberg, D. Man´e, R. Monga, S. Moore, D. Murray, C. Olah, M. Schuster, J. Shlens, B. Steiner, I. Sutskever, K. Talwar, P. Tucker, V. Vanhoucke, V. Vasudevan, F. Vi´egas, O. Vinyals, P. Warden, M. Wattenberg, M. Wicke, Y. Yu, and X. Zheng, [TensorFlow: Large-scale machine learning on heterogeneous systems](https://www.tensorflow.org/) (2015), software available from tensorflow.org.
+
+[8] F. Chollet et al., Keras, [keras.io](https://keras.io/) (2015).
+
+[9] G. Inc., Tensorflow lite, [https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/lite](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/contrib/lite) (2017).
+
+[10] G. LLC., [Tensorflow models on the edge tpu](https://coral.ai/docs/edgetpu/models-intro/) (2020), accessed: 02/06/2023.
+
+[11] J. A. C. (Alex) and contributors, Pillow, [https://github.com/python-pillow/Pillow](https://github.com/python-pillow/Pillow) (2023).
+
+[12] D. P. Kingma and J. Ba, Adam: A method for stochastic optimization (2017), [arXiv:1412.6980 [cs.LG]](https://arxiv.org/abs/1412.6980).
+
+[13] C. Cortes, M. Mohri, and A. Rostamizadeh, L2 regularization for learning kernels (2012), [arXiv:1205.2653 [cs.LG]](https://arxiv.org/abs/1205.2653).
+
+[14] N. Srivastava, G. Hinton, A. Krizhevsky, I. Sutskever, and R. Salakhutdinov, Dropout: A simple way to prevent neural networks from overfitting, [Journal of Machine Learning Research 15, 1929 (2014)](http://jmlr.org/papers/v15/srivastava14a.html).
+
+[15] J. D. Hunter, Matplotlib: A 2d graphics environment, [Computing in Science & Engineering 9, 90 (2007)](https://doi.org/10.1109/MCSE.2007.55).
+
+[16] R. Trevethan, Sensitivity, specificity, and predictive values: Foundations, pliabilities, and pitfalls in research and practice, [Frontiers in public health 5, 307 (2017)](https://doi.org/10.3389/fpubh.2017.00307).
+
+[17] D. J. Hand, Assessing the performance of classification methods, [International Statistical Review 80, 400 (2012)](https://doi.org/https://doi.org/10.1111/j.1751-5823.2012.00183.x), [https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1751-5823.2012.00183.x](https://arxiv.org/abs/https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1751-5823.2012.00183.x).
+
+[18] M. Sandler, A. Howard, M. Zhu, A. Zhmoginov, and L.C. Chen, Mobilenetv2: Inverted residuals and linear bottlenecks, in [2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition](https://doi.org/10.1109/CVPR.2018.00474) (2018) pp. 4510–4520
