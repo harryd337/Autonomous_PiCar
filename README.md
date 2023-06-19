@@ -68,9 +68,9 @@ The main objectives of this project are separated into two sections; the Kaggle 
 
 The objective of the Kaggle competition is to train a model that achieves a competitively low loss on a hidden labelled test dataset consisting of 1020 images, in competition with other groups. The loss is calculated as the sum of the Mean Squared Error (MSE) of the speed and angle predictions.
 
-In the live testing section, the model is implemented into the physical car and its performance is assessed based on its ability to perform certain tasks. All tasks involve the car driving around a track and reacting to features the model can identify in the images it sees. The three tracks to be used during live testing are displayed in Figure 1, and include “T-junction”, “Oval” and “Figure-of-eight” tracks.
+In the live testing section, the model is implemented into the physical car and its performance is assessed based on its ability to perform certain tasks. All tasks involve the car driving around a track and reacting to features the model can identify in the images it sees. The three tracks to be used during live testing are displayed below, and include “T-junction”, “Oval” and “Figure-of-eight” tracks.
 
-Figure 1...
+![The three tracks used to evaluate the model during live testing](figures/tracks.png)
 
 The T-junction track is used to assess the models ability to steer the car along a straight line in the correct lane and to turn either left or right, as indicated by arrows placed at the end of the track.
 
@@ -88,9 +88,9 @@ The model must predict two labels; speed and angle. These can be thought of as b
 
 The model is therefore designed as a multi-task CNN with two branches resulting in two outputs. The output of one branch is the speed label prediction, with the loss computed as the binary cross-entropy, and the output of the second branch is the angle label prediction, with the loss computed as the MSE.
 
-Figure 2...
+![An illustration of the final model.](figures/model.png)
 
-The model is illustrated in Figure 2. Each branch has three convolutional layers involving 32, 64 and 128 3x3 kernels, respectively. Each convolutional layer is followed by a ReLU activation function, to allow the model to learn non-linear relationships. After the first two convolutional layers and their activations, there are max pooling layers, involving 2x2 kernels. Since the input images are RGB, the convolutional and max pooling layers are broken into 3 channels representing the red, green and blue components. After the final convolutional layer and its activation, their output is flattened and passed to two fully connected layers consisting of 64 and 10 neurons. The final output from each branch represents either the speed or angle prediction. With an input image of size 32x32, the total number of trainable parameters of the model is 450,090.
+The model is illustrated above. Each branch has three convolutional layers involving 32, 64 and 128 3x3 kernels, respectively. Each convolutional layer is followed by a ReLU activation function, to allow the model to learn non-linear relationships. After the first two convolutional layers and their activations, there are max pooling layers, involving 2x2 kernels. Since the input images are RGB, the convolutional and max pooling layers are broken into 3 channels representing the red, green and blue components. After the final convolutional layer and its activation, their output is flattened and passed to two fully connected layers consisting of 64 and 10 neurons. The final output from each branch represents either the speed or angle prediction. With an input image of size 32x32, the total number of trainable parameters of the model is 450,090.
 
 ### Construction
 
@@ -160,13 +160,13 @@ A proportion of the initial training data is also split into an evaluation set. 
 
 ### Evaluation Metrics
 
-The final models learning curve on the evaluation set over training on 200 epochs with a batch size of 40 is shown in Figure 3. The loss is separated into its speed and angle components and is measured as the MSE. The model seems to settle quickly on an optimal angle loss but the speed loss seems unstable although generally decreasing.
+The final models learning curve on the evaluation set over training on 200 epochs with a batch size of 40 is shown below. The loss is separated into its speed and angle components and is measured as the MSE. The model seems to settle quickly on an optimal angle loss but the speed loss seems unstable although generally decreasing.
 
-Figure 3...
+![The MSE of predictions on the evaluation set over 200 training epochs.](figures/loss.png)
 
-The specificity and F1-negative metrics associated with the evaluation set throughout training are shown in Figure 4. Both metrics seem to be approaching 1, indicating successful learning of classification between the two classes.
+The values of the specificity and F1-negative metrics associated with the evaluation set throughout training are shown below. Both metrics seem to be approaching 1, indicating successful learning of classification between the two classes.
 
-Figure 4...
+![The F1-negative and specificity of speed predictions on the evaluation set over 200 training epochs.](figures/speed.png)
 
 ### Kaggle Competition
 
