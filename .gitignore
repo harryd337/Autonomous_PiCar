@@ -1,4 +1,3 @@
-machine-learning-in-science-ii-2023/
 logs/
 submissions/
 models/
@@ -8,3 +7,4 @@ classification.py
 exampleCNN.py
 regression.py
 tests/__pycache__/GPU_availability_test.cpython-39.pyc
+Autonomous_PiCar.code-workspace
