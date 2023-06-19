@@ -42,7 +42,9 @@ CNNs are a type of artificial neural network architecture often used in conjunct
 
 ## Image Data
 
-The images used by the model come from the onboard camera of a small electric robot car [4]. The car also has an onboard Raspberry Pi (RPi) 4 [5] that is used to run the model and make predictions on the image data in real-time.
+The images used by the model come from the onboard camera of a small electric robot car [4], displayed below. The car also has an onboard Raspberry Pi (RPi) 4 [5] that is used to run the model and make predictions on the image data in real-time.
+
+![IMG_7089](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/58c8f127-6823-426b-bbdb-44c8df6f135c)
 
 The speed label corresponds to the speed at which the car should drive, given the current image. There are two classes of speed label, 0 or 1, which correspond to the car stopping its wheels or driving them forwards at a constant rate. This means that predicting the speed label is a binary classification problem.
 
@@ -59,6 +61,14 @@ The training data to be used to train the model are images taken from the camera
 An initial labelled training dataset is provided. This dataset includes 13,792 labelled images that were previously collected. There is also the option to collect additional data.
 
 Initial training data is stored in "machine-learning-in-science-ii-2023/training_data/combined". Newly collected data is stored in "machine-learning-in-science-ii-2023/training_data/new_data" and is automatically sorted and moved into the former directory prior to training. The test data is stored in "machine-learning-in-science-ii-2023/test_data/test_data". "training_norm.csv" contains the names and corresponding labels of each image in the initially provided training dataset. The data is not uploaded to this repository.
+
+Example image data:
+
+![Picture1](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/9f429cda-04ed-49e0-91fa-2a1bbce58082)
+
+![Picture2](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/b7ba7f21-cdb4-41a2-a536-5656649aed92)
+
+![Picture3](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/4287dec6-b84c-454a-874a-6ed0e1bed5c0)
 
 ## Objectives
 
@@ -178,7 +188,19 @@ For the Kaggle competition, an earlier model was used which achieved a combined 
 
 During live testing, the car was excellent at stopping before colliding with obstacles and ignoring them on the side of the road, but failed to stop at red lights, indicating good overall performance at the classification task. The car successfully navigated the oval track and could handle driving at a significantly increased speed. However, it failed to drive in a straight line down the T-junction track or turn at the junction. It also failed to cross the intersection of the Figure-of-eight track, although handling the turns.
 
-Videos of live testing...
+The following are videos of the car driving autonomously using the trained model.
+
+The car navigating the inside lane turn of the oval track (early model):
+
+https://github.com/harryd337/Autonomous_PiCar/assets/100152207/918f224f-0715-43d0-b897-c76e0f4050cd
+
+An example of the models ability to recognise obstacles:
+
+https://github.com/harryd337/Autonomous_PiCar/assets/100152207/6ddcd30e-6a28-4ebf-9b86-941e63415b97
+
+The car successfully handling a corner at maximum speed:
+
+https://github.com/harryd337/Autonomous_PiCar/assets/100152207/bc864370-8257-42c7-821b-30d440179356
 
 ## Discussion
 
