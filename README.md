@@ -60,6 +60,8 @@ The training data to be used to train the model are images taken from the camera
 
 An initial labelled training dataset is provided. This dataset includes 13,792 labelled images that were previously collected. There is also the option to collect additional data.
 
+Initial training data is stored in "machine-learning-in-science-ii-2023/training_data/combined". Newly collected data is stored in "machine-learning-in-science-ii-2023/training_data/new_data" and is automatically sorted and moved into the former directory prior to training. The test data is stored in "machine-learning-in-science-ii-2023/test_data/test_data". "training_norm.csv" contains the names and corresponding labels of each image in the initially provided training dataset. The data is not uploaded to this repository.
+
 ## Objectives
 
 The main objectives of this project are separated into two sections; the Kaggle competition; and the live testing of the car.
