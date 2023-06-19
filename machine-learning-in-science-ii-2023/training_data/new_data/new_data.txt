@@ -1,0 +1,1 @@
+This folder would contain newly collected training data in the form of PNG images.
