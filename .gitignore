@@ -9,3 +9,5 @@ regression.py
 tests/__pycache__/GPU_availability_test.cpython-39.pyc
 Autonomous_PiCar.code-workspace
 figures/tracks.png:Zone.Identifier
+machine-learning-in-science-ii-2023/test_data/test_data/*.png
+machine-learning-in-science-ii-2023/training_data/combined/*.png
