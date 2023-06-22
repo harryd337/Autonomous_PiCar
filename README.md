@@ -194,15 +194,15 @@ The following are videos of the car driving autonomously using the trained model
 
 The car navigating the inside lane turn of the oval track (early model):
 
-https://github.com/harryd337/Autonomous_PiCar/assets/100152207/918f224f-0715-43d0-b897-c76e0f4050cd
+https://github.com/harryd337/Autonomous_PiCar/assets/100152207/f5dd4e58-5fc4-43f2-9d13-9218194fd208
 
 An example of the models ability to recognise obstacles:
 
-https://github.com/harryd337/Autonomous_PiCar/assets/100152207/6ddcd30e-6a28-4ebf-9b86-941e63415b97
+https://github.com/harryd337/Autonomous_PiCar/assets/100152207/4ca75cc2-35e0-45de-95c8-cf6628d39027
 
 The car successfully handling a corner at maximum speed:
 
-https://github.com/harryd337/Autonomous_PiCar/assets/100152207/bc864370-8257-42c7-821b-30d440179356
+https://github.com/harryd337/Autonomous_PiCar/assets/100152207/e696aa6b-0c03-4166-bb3f-82aa439a5d06
 
 ## Discussion
 
