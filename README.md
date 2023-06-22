@@ -25,6 +25,7 @@
 - [Discussion](#discussion)
 - [Conclusions](#conclusions)
 - [References](#references)
+- [License](#license)
 
 ## Overview
 
@@ -257,3 +258,7 @@ In conclusion, the model was designed and trained well enough to achieve good re
 [17] D. J. Hand, Assessing the performance of classification methods, [International Statistical Review 80, 400 (2012)](https://doi.org/https://doi.org/10.1111/j.1751-5823.2012.00183.x), [https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1751-5823.2012.00183.x](https://arxiv.org/abs/https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1751-5823.2012.00183.x).
 
 [18] M. Sandler, A. Howard, M. Zhu, A. Zhmoginov, and L.C. Chen, Mobilenetv2: Inverted residuals and linear bottlenecks, in [2018 IEEE/CVF Conference on Computer Vision and Pattern Recognition](https://doi.org/10.1109/CVPR.2018.00474) (2018) pp. 4510–4520
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
