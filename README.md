@@ -46,7 +46,7 @@ CNNs are a type of artificial neural network architecture often used in conjunct
 
 The images used by the model come from the onboard camera of a small electric robot car [4], displayed below. The car also has an onboard Raspberry Pi (RPi) 4 [5] that is used to run the model and make predictions on the image data in real-time.
 
-![IMG_7089](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/58c8f127-6823-426b-bbdb-44c8df6f135c)
+![The PiCar](figures/car.PNG)
 
 The speed label corresponds to the speed at which the car should drive, given the current image. There are two classes of speed label, 0 or 1, which correspond to the car stopping its wheels or driving them forwards at a constant rate. This means that predicting the speed label is a binary classification problem.
 
@@ -66,11 +66,11 @@ Initial training data is stored in "machine-learning-in-science-ii-2023/training
 
 Example image data:
 
-![Picture1](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/9f429cda-04ed-49e0-91fa-2a1bbce58082)
+![Example image 1](figures/example1.png)
 
-![Picture2](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/b7ba7f21-cdb4-41a2-a536-5656649aed92)
+![Example image 2](figures/example2.png)
 
-![Picture3](https://github.com/harryd337/Autonomous_PiCar/assets/100152207/4287dec6-b84c-454a-874a-6ed0e1bed5c0)
+![Example image 3](figures/example3.png)
 
 ## Objectives
 
