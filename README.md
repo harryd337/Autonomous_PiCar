@@ -34,6 +34,8 @@ The model is designed and then trained to predict two labels for each image; the
 
 The following sections provide detailed explanations of the most important elements of the project, including details of the task; development of the model; and the final results. There is also a discussion of the results and a conclusion.
 
+Although this was a team-based project, all work posted to this repository is my own.
+
 ## Background
 
 Supervised learning is a branch of machine learning defined by its use of labelled data to train models [1]. It involves devising an algorithm allowing a model to learn to predict the correct label for a given sample from the training dataset. The aim is for the trained model to be able to make accurate predictions of labels for unseen data.
